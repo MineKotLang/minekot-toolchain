@@ -1,60 +1,48 @@
 [versions]
-# ---------------------------------------------------------
-# Kotlin & Core
-# ---------------------------------------------------------
 kotlin = "2.4.0"
 kotlinx-io = "0.9.1"
 kotlinx-serialization = "1.11.0"
 kotlinx-coroutines = "1.11.0"
 kotlinx-atomicfu = "0.33.0"
-
-# ---------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------
+ksp = "2.3.9"
+kotlinpoet = "2.3.0"
 adventure = "5.2.0"
+detekt = "1.23.8"
+junit = "6.1.1"
+junit-platform = "6.1.1"
 mockk = "1.14.11"
-exposed = "1.3.1"
-
-# ---------------------------------------------------------
-# Gradle Plugins
-# ---------------------------------------------------------
-shadow = "9.4.3"
-
+shadow = "9.5.1"
+dotenv = "1.1.3"
 
 [libraries]
-# ---------------------------------------------------------
-# Kotlin & Core
-# ---------------------------------------------------------
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core-jvm", version.ref = "kotlinx-io" }
 kotlinx-io-bytestring = { module = "org.jetbrains.kotlinx:kotlinx-io-bytestring-jvm", version.ref = "kotlinx-io" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu-jvm", version.ref = "kotlinx-atomicfu" }
-
-# ---------------------------------------------------------
-# Adventure
-# ---------------------------------------------------------
+ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-ansi = { module = "net.kyori:adventure-text-serializer-ansi", version.ref = "adventure" }
 adventure-gson = { module = "net.kyori:adventure-text-serializer-gson", version.ref = "adventure" }
 adventure-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }
-
-# ---------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------
+detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
+detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
+detekt-gradle-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+shadow-gradle-plugin = { module = "com.gradleup.shadow:shadow-gradle-plugin", version.ref = "shadow" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
-exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
-exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 
 [bundles]
-# ---------------------------------------------------------
-# Kotlin Core
-# ---------------------------------------------------------
 kotlin-core = [
     "kotlin-stdlib",
     "kotlin-reflect",
@@ -62,31 +50,26 @@ kotlin-core = [
     "kotlinx-coroutines-core",
     "kotlinx-serialization-json",
     "kotlinx-io-core",
-    "kotlinx-io-bytestring"
+    "kotlinx-io-bytestring",
 ]
-
-# ---------------------------------------------------------
-# Adventure
-# ---------------------------------------------------------
 adventure = [
+    "adventure-api",
     "adventure-ansi",
     "adventure-gson",
     "adventure-legacy",
     "adventure-minimessage",
-    "adventure-plain"
+    "adventure-plain",
 ]
-
-# ---------------------------------------------------------
-# Testing
-# ---------------------------------------------------------
 testing = [
+    "junit-jupiter",
     "mockk",
     "kotlinx-coroutines-test",
-    "kotlin-test"
 ]
-
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dotenv = { id = "io.github.klahap.dotenv", version.ref = "dotenv" }

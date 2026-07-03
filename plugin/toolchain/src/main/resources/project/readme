@@ -1,0 +1,13 @@
+# MineKot Project
+
+MineKot project using the MineKot Gradle toolchain.
+
+## Usage
+
+```shell
+./gradlew check
+```
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

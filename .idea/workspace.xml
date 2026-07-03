@@ -4,19 +4,57 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
+    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="79" />
+    <option name="cachedIndexableFilesCount" value="3107" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="build" type="c8890929:TasksNode$1" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="publishing" type="c8890929:TasksNode$1" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
   </component>
   <component name="FormatOnSaveOptions">
     <option name="myRunOnSave" value="true" />
@@ -25,8 +63,94 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="SIGN_OFF_COMMIT" value="true" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;GuavaDealer&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/MineKotLang/minekot-toolchain.git&quot;,
+    &quot;accountId&quot;: &quot;ea5a7e0e-ec4d-41e4-b7e3-ea64d29eee71&quot;
+  }
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.1018087629004079" />
+      <entry key="MS500" value="2.0648729837148014" />
+      <entry key="S2" value="2.7053969970262735" />
+      <entry key="S5" value="2.8762658099920078" />
+      <entry key="S10" value="2.948926381396352" />
+      <entry key="S30" value="3.5620135976922374" />
+      <entry key="S60" value="4.670666927493102" />
+      <entry key="M2" value="6.2297000987622715" />
+      <entry key="M5" value="8.779391588906806" />
+      <entry key="M10" value="13.004310866946437" />
+      <entry key="M15" value="17.56689824750923" />
+      <entry key="M30" value="27.47010952085612" />
+      <entry key="H1" value="36.406835931007734" />
+      <entry key="H2" value="42.48694041238444" />
+      <entry key="H4" value="46.04404860071753" />
+      <entry key="D1" value="49.31106050458018" />
+      <entry key="W1" value="49.90082840483731" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="3.240595824532217E-286" />
+      <entry key="S5" value="8.316092023736516E-115" />
+      <entry key="S10" value="1.247047921865439E-57" />
+      <entry key="S30" value="1.7047441185154486E-19" />
+      <entry key="S60" value="6.501259372119892E-10" />
+      <entry key="M2" value="5.393427512240988E-5" />
+      <entry key="M5" value="0.06465429667888618" />
+      <entry key="M10" value="0.7419902933126151" />
+      <entry key="M15" value="1.6930124376432008" />
+      <entry key="M30" value="3.8889898972123147" />
+      <entry key="H1" value="5.910370190771774" />
+      <entry key="H2" value="7.291544623362759" />
+      <entry key="H4" value="8.100342807897867" />
+      <entry key="D1" value="8.843322363250632" />
+      <entry key="W1" value="8.977446699327128" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.0871977693869135" />
+      <entry key="MS500" value="2.059993411606426" />
+      <entry key="S2" value="2.7038279591713525" />
+      <entry key="S5" value="2.875600267166473" />
+      <entry key="S10" value="2.948585200620729" />
+      <entry key="S30" value="3.5618720954612537" />
+      <entry key="S60" value="4.670571152386393" />
+      <entry key="M2" value="6.229677792244983" />
+      <entry key="M5" value="8.842304360752978" />
+      <entry key="M10" value="13.737036962255866" />
+      <entry key="M15" value="19.24609524457906" />
+      <entry key="M30" value="31.343548078121124" />
+      <entry key="H1" value="42.305511292264896" />
+      <entry key="H2" value="49.77130944066466" />
+      <entry key="H4" value="54.140416358130096" />
+      <entry key="D1" value="58.15366122571" />
+      <entry key="W1" value="58.87817048957334" />
+    </decayedShown>
+  </component>
   <component name="OptimizeOnSaveOptions">
     <option name="myRunOnSave" value="true" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="3G5n4AVz0YJfIHRG2O3kWi2bYgH" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
   </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -34,6 +158,8 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Gradle.minekot-toolchain [build].executor": "Run",
+    "Gradle.minekot-toolchain [publishToMavenLocal].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -42,20 +168,237 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "android.gradle.sync.needed": "true",
+    "SHFMT.PATH": "/home/GuavaDealer/.local/share/JetBrains/IntelliJIdea2026.1/Shell Script/shfmt",
     "cidr.known.project.marker": "true",
     "code.cleanup.on.save": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
     "junie.onboarding.icon.badge.shown": "true",
+    "kobweb-plugin-state": "DISABLED",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/mnt/PortableSSD/Documents/code/__Minecraft/MineKot/Repositories/MineKot-Template-Project-Base",
+    "last_opened_file_path": "/mnt/PortableSSD/Documents/code/__Minecraft/MineKot/Repositories/minekot-toolchain",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15314402",
+    "project.structure.side.proportion": "0.46642685",
     "rearrange.code.on.save": "true",
-    "settings.editor.selected.configurable": "com.intellij.mcpserver.settings",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "advanced.settings",
     "to.speed.mode.migration.done": "true"
   }
 }]]></component>
-    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
-    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
-    <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
+  <component name="QodanaReportsService">
+    <option name="descriptions">
+      <ReportDescription localRun="true" path="/tmp/qodana_output/qodana.sarif.json" reportGuid="d0a971f6-6bbc-4bd2-88a2-6dbe4d3894dc" reportId="minekot-toolchain/qodana/2026-07-06" />
+      <ReportDescription localRun="true" path="/tmp/qodana_output1/qodana.sarif.json" reportGuid="700e6639-5284-4099-8762-33fb7decb7dc" reportId="minekot-toolchain/qodana/2026-07-06" />
+    </option>
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/plugin/toolchain/src/main/resources/project" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Gradle.minekot-toolchain [publishToMavenLocal]">
+    <configuration name="minekot-toolchain [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="build" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <GradleProfilingDisabled>false</GradleProfilingDisabled>
+      <GradleCoverageDisabled>false</GradleCoverageDisabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="minekot-toolchain [publishToMavenLocal]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="publishToMavenLocal" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <GradleProfilingDisabled>false</GradleProfilingDisabled>
+      <GradleCoverageDisabled>false</GradleCoverageDisabled>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Gradle.minekot-toolchain [publishToMavenLocal]" />
+        <item itemvalue="Gradle.minekot-toolchain [build]" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-37e91769500f-intellij.indexing.shared.core-IU-261.26222.65" />
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-IU-261.26222.65" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="" />
+      <created>1783270032598</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1783270032598</updated>
+    </task>
+    <task id="LOCAL-00001" summary="feat: add toolchain MVP">
+      <option name="closed" value="true" />
+      <created>1783374553743</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1783374553743</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat: add toolchain MVP&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783376469212</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1783376469212</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: add toolchain MVP&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783376522685</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1783376522685</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: add toolchain MVP&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783376642638</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1783376642638</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783377840041</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1783377840041</updated>
+    </task>
+    <task id="LOCAL-00006" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378005217</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378005217</updated>
+    </task>
+    <task id="LOCAL-00007" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378669861</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378669861</updated>
+    </task>
+    <task id="LOCAL-00008" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378710551</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378710551</updated>
+    </task>
+    <task id="LOCAL-00009" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378721823</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378721823</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378745410</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378745410</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="master" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="feat: add toolchain MVP" />
+    <MESSAGE value="feat: add toolchain MVP&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
+    <MESSAGE value="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
   </component>
 </project>

@@ -1,0 +1,21 @@
+<code_scheme name="MineKot" version="173">
+    <option name="LINE_SEPARATOR" value="&#10;" />
+    <option name="RIGHT_MARGIN" value="120" />
+    <JetCodeStyleSettings>
+        <option name="NAME_COUNT_TO_USE_STAR_IMPORT" value="5" />
+        <option name="NAME_COUNT_TO_USE_STAR_IMPORT_FOR_MEMBERS" value="3" />
+        <option name="PACKAGES_TO_USE_STAR_IMPORTS">
+            <value />
+        </option>
+        <option name="IMPORT_NESTED_CLASSES" value="false" />
+    </JetCodeStyleSettings>
+    <codeStyleSettings language="kotlin">
+        <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1" />
+        <option name="KEEP_BLANK_LINES_IN_CODE" value="1" />
+        <indentOptions>
+            <option name="INDENT_SIZE" value="4" />
+            <option name="CONTINUATION_INDENT_SIZE" value="8" />
+            <option name="TAB_SIZE" value="4" />
+        </indentOptions>
+    </codeStyleSettings>
+</code_scheme>
