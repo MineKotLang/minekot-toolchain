@@ -1,0 +1,25 @@
+# Android project system
+/AndroidProjectSystem.xml
+# Compiler settings
+/compiler.xml
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+# Gradle settings
+/gradle.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# JAR repositories
+/jarRepositories.xml
+# Kotlin compiler settings
+/kotlinc.xml
+# Libraries
+/libraries/
+# Module configuration
+/modules.xml
+# Project name
+/.name
+# Ignored default folder with query files
+/queries/
+# Default ignored files
+/shelf/
