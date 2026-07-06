@@ -111,7 +111,7 @@ subprojects {
                 pom {
                     name.set(project.name)
                     description.set("MineKot toolchain artifact ${project.path}")
-                    url.set("https://github.com/MineKotLang/MineKot")
+                    url.set("https://github.com/MineKotLang/minekot-toolchain")
                     licenses {
                         license {
                             name.set("Apache License 2.0")

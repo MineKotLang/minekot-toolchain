@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
-      <change afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
+    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="ci: add GitHub Actions build workflow&#10;&#10;- Add `build.yml` workflow to automate building and testing the project with Gradle and JDK 25 on push and pull requests to the master branch.">
       <change afterPath="$PROJECT_DIR$/PLAN.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,61 +85,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.5058942479482631E-47" />
-      <entry key="MS500" value="4.323221951960612E-10" />
-      <entry key="S2" value="0.0052644992795523315" />
-      <entry key="S5" value="0.17063076797413254" />
-      <entry key="S10" value="0.5744807809927236" />
-      <entry key="S30" value="1.3145538172454543" />
-      <entry key="S60" value="1.6206690026875044" />
-      <entry key="M2" value="1.800156436097268" />
-      <entry key="M5" value="1.941608601128392" />
-      <entry key="M10" value="2.640135279601809" />
-      <entry key="M15" value="4.432990268053497" />
-      <entry key="M30" value="12.267566525757882" />
-      <entry key="H1" value="24.266177043605843" />
-      <entry key="H2" value="35.22839271463593" />
-      <entry key="H4" value="42.7197078032969" />
-      <entry key="D1" value="50.31144458140572" />
-      <entry key="W1" value="51.75504797050469" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000000005177805" />
+      <entry key="S5" value="1.0002922218073853" />
+      <entry key="S10" value="1.0241700276608752" />
+      <entry key="S30" value="1.4591969758496925" />
+      <entry key="S60" value="1.9857313865569723" />
+      <entry key="M2" value="2.7014913942801604" />
+      <entry key="M5" value="4.1675067581331495" />
+      <entry key="M10" value="5.636306734166343" />
+      <entry key="M15" value="7.432263737394871" />
+      <entry key="M30" value="14.84465500652718" />
+      <entry key="H1" value="26.92800354856976" />
+      <entry key="H2" value="38.531220442097506" />
+      <entry key="H4" value="46.68804303744703" />
+      <entry key="D1" value="55.10828398985855" />
+      <entry key="W1" value="56.72517276468087" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0000107002201128" />
-      <entry key="S2" value="1.05723817750503" />
-      <entry key="S5" value="1.336541423563894" />
-      <entry key="S10" value="1.6990295135789526" />
-      <entry key="S30" value="2.3390522918641823" />
-      <entry key="S60" value="2.6250723907497333" />
-      <entry key="M2" value="2.7996235202280078" />
-      <entry key="M5" value="2.9166623684939066" />
-      <entry key="M10" value="2.9965617889306246" />
-      <entry key="M15" value="3.2088091869556403" />
-      <entry key="M30" value="4.441332819851496" />
-      <entry key="H1" value="6.6087416413663975" />
-      <entry key="H2" value="8.699634932539347" />
-      <entry key="H4" value="10.162173917859908" />
-      <entry key="D1" value="11.663808081111485" />
-      <entry key="W1" value="11.951184885120218" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="1.8314003953018952E-293" />
+      <entry key="S2" value="6.91619933076502E-74" />
+      <entry key="S5" value="7.116398985439472E-30" />
+      <entry key="S10" value="3.9204855350043245E-15" />
+      <entry key="S30" value="3.0909091625496034E-5" />
+      <entry key="S60" value="0.009542549902834915" />
+      <entry key="M2" value="0.16879563479425636" />
+      <entry key="M5" value="0.948398349262725" />
+      <entry key="M10" value="1.708738295654889" />
+      <entry key="M15" value="2.2065415142126485" />
+      <entry key="M30" value="3.6829635803024625" />
+      <entry key="H1" value="6.018119771191732" />
+      <entry key="H2" value="8.301795952336523" />
+      <entry key="H4" value="9.927094049283111" />
+      <entry key="D1" value="11.618398918142985" />
+      <entry key="W1" value="11.944526915310094" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.2233604305984589E-16" />
-      <entry key="MS500" value="6.569264854737023E-4" />
-      <entry key="S2" value="0.17466255259926186" />
-      <entry key="S5" value="0.8131090077618104" />
-      <entry key="S10" value="1.7540977251952852" />
-      <entry key="S30" value="3.388470503109607" />
-      <entry key="S60" value="4.093159888939364" />
-      <entry key="M2" value="4.517404844328763" />
-      <entry key="M5" value="4.823688294405599" />
-      <entry key="M10" value="5.618635677539671" />
-      <entry key="M15" value="7.628082082145659" />
-      <entry key="M30" value="16.69715499509448" />
-      <entry key="H1" value="30.864793823666822" />
-      <entry key="H2" value="43.92092799658684" />
-      <entry key="H4" value="52.877622092323975" />
-      <entry key="D1" value="61.97442155877529" />
-      <entry key="W1" value="63.706110818201516" />
+      <entry key="MS100" value="0.020760715845257988" />
+      <entry key="MS500" value="0.4607320930993519" />
+      <entry key="S2" value="0.8238765021480039" />
+      <entry key="S5" value="0.9257247146758405" />
+      <entry key="S10" value="0.9861550353166779" />
+      <entry key="S30" value="1.4463336137900193" />
+      <entry key="S60" value="1.9882195916996996" />
+      <entry key="M2" value="2.862043736628871" />
+      <entry key="M5" value="5.1033332999662795" />
+      <entry key="M10" value="7.3340774182938135" />
+      <entry key="M15" value="9.628925439495745" />
+      <entry key="M30" value="18.517655275180495" />
+      <entry key="H1" value="32.93679091979269" />
+      <entry key="H2" value="46.82618515772722" />
+      <entry key="H4" value="56.6109478515153" />
+      <entry key="D1" value="66.7258503471339" />
+      <entry key="W1" value="68.66957704010822" />
     </decayedShown>
   </component>
   <component name="OptimizeOnSaveOptions">
@@ -163,6 +164,7 @@
   "keyToString": {
     "Gradle.minekot-toolchain [build].executor": "Run",
     "Gradle.minekot-toolchain [publishToMavenLocal].executor": "Run",
+    "Gradle.minekot-toolchain [publish].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -185,12 +187,12 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
+    "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.15314402",
     "project.structure.side.proportion": "0.46642685",
     "rearrange.code.on.save": "true",
     "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "advanced.settings",
+    "settings.editor.selected.configurable": "preferences.keymap",
     "to.speed.mode.migration.done": "true"
   }
 }]]></component>
@@ -206,7 +208,7 @@
       <recent name="$PROJECT_DIR$/plugin/toolchain/src/main/resources/project" />
     </key>
   </component>
-  <component name="RunManager" selected="Gradle.minekot-toolchain [publishToMavenLocal]">
+  <component name="RunManager" selected="Gradle.minekot-toolchain [publish]">
     <configuration name="minekot-toolchain [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -257,6 +259,31 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
+    <configuration name="minekot-toolchain [publish]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="publish" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <GradleProfilingDisabled>false</GradleProfilingDisabled>
+      <GradleCoverageDisabled>false</GradleCoverageDisabled>
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="JetRunConfigurationType">
       <method v="2">
         <option name="Make" enabled="true" />
@@ -268,6 +295,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Gradle.minekot-toolchain [publish]" />
         <item itemvalue="Gradle.minekot-toolchain [publishToMavenLocal]" />
         <item itemvalue="Gradle.minekot-toolchain [build]" />
       </list>
@@ -377,7 +405,23 @@
       <option name="project" value="LOCAL" />
       <updated>1783378780394</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="ci: add GitHub Actions build workflow&#10;&#10;- Add `build.yml` workflow to automate building and testing the project with Gradle and JDK 25 on push and pull requests to the master branch.">
+      <option name="closed" value="true" />
+      <created>1783379661588</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1783379661588</updated>
+    </task>
+    <task id="LOCAL-00013" summary="big brain">
+      <option name="closed" value="true" />
+      <created>1783379926629</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1783379926629</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -410,6 +454,8 @@
     <MESSAGE value="feat: add toolchain MVP" />
     <MESSAGE value="feat: add toolchain MVP&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
     <MESSAGE value="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
+    <MESSAGE value="ci: add GitHub Actions build workflow&#10;&#10;- Add `build.yml` workflow to automate building and testing the project with Gradle and JDK 25 on push and pull requests to the master branch." />
+    <MESSAGE value="big brain" />
+    <option name="LAST_COMMIT_MESSAGE" value="big brain" />
   </component>
 </project>
