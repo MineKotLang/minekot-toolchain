@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
+    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <change afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/PLAN.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -81,61 +84,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.1018087629004079" />
-      <entry key="MS500" value="2.0648729837148014" />
-      <entry key="S2" value="2.7053969970262735" />
-      <entry key="S5" value="2.8762658099920078" />
-      <entry key="S10" value="2.948926381396352" />
-      <entry key="S30" value="3.5620135976922374" />
-      <entry key="S60" value="4.670666927493102" />
-      <entry key="M2" value="6.2297000987622715" />
-      <entry key="M5" value="8.779391588906806" />
-      <entry key="M10" value="13.004310866946437" />
-      <entry key="M15" value="17.56689824750923" />
-      <entry key="M30" value="27.47010952085612" />
-      <entry key="H1" value="36.406835931007734" />
-      <entry key="H2" value="42.48694041238444" />
-      <entry key="H4" value="46.04404860071753" />
-      <entry key="D1" value="49.31106050458018" />
-      <entry key="W1" value="49.90082840483731" />
+      <entry key="MS100" value="1.5058942479482631E-47" />
+      <entry key="MS500" value="4.323221951960612E-10" />
+      <entry key="S2" value="0.0052644992795523315" />
+      <entry key="S5" value="0.17063076797413254" />
+      <entry key="S10" value="0.5744807809927236" />
+      <entry key="S30" value="1.3145538172454543" />
+      <entry key="S60" value="1.6206690026875044" />
+      <entry key="M2" value="1.800156436097268" />
+      <entry key="M5" value="1.941608601128392" />
+      <entry key="M10" value="2.640135279601809" />
+      <entry key="M15" value="4.432990268053497" />
+      <entry key="M30" value="12.267566525757882" />
+      <entry key="H1" value="24.266177043605843" />
+      <entry key="H2" value="35.22839271463593" />
+      <entry key="H4" value="42.7197078032969" />
+      <entry key="D1" value="50.31144458140572" />
+      <entry key="W1" value="51.75504797050469" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="3.240595824532217E-286" />
-      <entry key="S5" value="8.316092023736516E-115" />
-      <entry key="S10" value="1.247047921865439E-57" />
-      <entry key="S30" value="1.7047441185154486E-19" />
-      <entry key="S60" value="6.501259372119892E-10" />
-      <entry key="M2" value="5.393427512240988E-5" />
-      <entry key="M5" value="0.06465429667888618" />
-      <entry key="M10" value="0.7419902933126151" />
-      <entry key="M15" value="1.6930124376432008" />
-      <entry key="M30" value="3.8889898972123147" />
-      <entry key="H1" value="5.910370190771774" />
-      <entry key="H2" value="7.291544623362759" />
-      <entry key="H4" value="8.100342807897867" />
-      <entry key="D1" value="8.843322363250632" />
-      <entry key="W1" value="8.977446699327128" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0000107002201128" />
+      <entry key="S2" value="1.05723817750503" />
+      <entry key="S5" value="1.336541423563894" />
+      <entry key="S10" value="1.6990295135789526" />
+      <entry key="S30" value="2.3390522918641823" />
+      <entry key="S60" value="2.6250723907497333" />
+      <entry key="M2" value="2.7996235202280078" />
+      <entry key="M5" value="2.9166623684939066" />
+      <entry key="M10" value="2.9965617889306246" />
+      <entry key="M15" value="3.2088091869556403" />
+      <entry key="M30" value="4.441332819851496" />
+      <entry key="H1" value="6.6087416413663975" />
+      <entry key="H2" value="8.699634932539347" />
+      <entry key="H4" value="10.162173917859908" />
+      <entry key="D1" value="11.663808081111485" />
+      <entry key="W1" value="11.951184885120218" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.0871977693869135" />
-      <entry key="MS500" value="2.059993411606426" />
-      <entry key="S2" value="2.7038279591713525" />
-      <entry key="S5" value="2.875600267166473" />
-      <entry key="S10" value="2.948585200620729" />
-      <entry key="S30" value="3.5618720954612537" />
-      <entry key="S60" value="4.670571152386393" />
-      <entry key="M2" value="6.229677792244983" />
-      <entry key="M5" value="8.842304360752978" />
-      <entry key="M10" value="13.737036962255866" />
-      <entry key="M15" value="19.24609524457906" />
-      <entry key="M30" value="31.343548078121124" />
-      <entry key="H1" value="42.305511292264896" />
-      <entry key="H2" value="49.77130944066466" />
-      <entry key="H4" value="54.140416358130096" />
-      <entry key="D1" value="58.15366122571" />
-      <entry key="W1" value="58.87817048957334" />
+      <entry key="MS100" value="1.2233604305984589E-16" />
+      <entry key="MS500" value="6.569264854737023E-4" />
+      <entry key="S2" value="0.17466255259926186" />
+      <entry key="S5" value="0.8131090077618104" />
+      <entry key="S10" value="1.7540977251952852" />
+      <entry key="S30" value="3.388470503109607" />
+      <entry key="S60" value="4.093159888939364" />
+      <entry key="M2" value="4.517404844328763" />
+      <entry key="M5" value="4.823688294405599" />
+      <entry key="M10" value="5.618635677539671" />
+      <entry key="M15" value="7.628082082145659" />
+      <entry key="M30" value="16.69715499509448" />
+      <entry key="H1" value="30.864793823666822" />
+      <entry key="H2" value="43.92092799658684" />
+      <entry key="H4" value="52.877622092323975" />
+      <entry key="D1" value="61.97442155877529" />
+      <entry key="W1" value="63.706110818201516" />
     </decayedShown>
   </component>
   <component name="OptimizeOnSaveOptions">
@@ -366,7 +369,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783378745410</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="feat: add gradle plugin, custom lint, and utils&#10;&#10;Establish shared infrastructure to unify project setup, enforce MineKot style guidelines, and provide utility wrapper libraries.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783378780394</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1783378780394</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
