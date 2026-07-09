@@ -38,6 +38,13 @@ val artifactIds = mapOf(
     ":libraries:adventure:minekot-adv-minimessage" to "minekot-adv-minimessage",
 )
 
+tasks.register<Exec>("mineKotSmokeTest") {
+    group = "verification"
+    description = "Runs the standalone MineKot plugin smoke project."
+    workingDir = layout.projectDirectory.dir("samples/smoke").asFile
+    commandLine(layout.projectDirectory.file("gradlew").asFile.absolutePath, "mineKotSmokeTest", "--no-daemon")
+}
+
 subprojects {
     group = rootProject.group
     version = rootProject.version

@@ -12,6 +12,16 @@ import javax.inject.Inject
  */
 abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFactory) {
     /**
+     * Maven group used for MineKot toolchain dependencies.
+     */
+    val dependencyGroup: Property<String> = objects.property(String::class.java)
+
+    /**
+     * Version used for MineKot toolchain dependencies.
+     */
+    val toolchainVersion: Property<String> = objects.property(String::class.java)
+
+    /**
      * Kotlin common utilities. Always enabled.
      */
     val common: RequiredFeatureBlock = objects.newInstance(RequiredFeatureBlock::class.java)
@@ -216,6 +226,16 @@ abstract class RepositoriesFeatureBlock @Inject constructor(objects: ObjectFacto
      * Whether MineKot snapshot repository should be added.
      */
     val minekotSnapshots: Property<Boolean> = objects.property(Boolean::class.java)
+
+    /**
+     * MineKot release repository URL.
+     */
+    val releasesUrl: Property<String> = objects.property(String::class.java)
+
+    /**
+     * MineKot snapshot repository URL.
+     */
+    val snapshotsUrl: Property<String> = objects.property(String::class.java)
 }
 
 /**
@@ -236,6 +256,16 @@ abstract class PublishingFeatureBlock @Inject constructor(objects: ObjectFactory
      * Optional static Maven repository output directory.
      */
     val staticRepositoryDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /**
+     * MineKot release publishing repository URL.
+     */
+    val releasesUrl: Property<String> = objects.property(String::class.java)
+
+    /**
+     * MineKot snapshot publishing repository URL.
+     */
+    val snapshotsUrl: Property<String> = objects.property(String::class.java)
 }
 
 /**

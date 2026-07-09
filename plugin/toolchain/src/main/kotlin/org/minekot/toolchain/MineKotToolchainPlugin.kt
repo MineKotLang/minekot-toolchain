@@ -3,13 +3,16 @@ package org.minekot.toolchain
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
@@ -23,6 +26,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             "minekotToolchain",
             MineKotToolchainExtension::class.java,
         )
+        configureConventions(project, extension)
 
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("org.jetbrains.kotlin.jvm")
@@ -35,11 +39,12 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.useJUnitPlatform()
         }
 
-        project.tasks.register("writeMineKotCodestyle", WriteMineKotCodestyleTask::class.java) {
-            it.group = "minekot"
-            it.description = "Writes MineKot codestyle templates into the project root."
-            it.outputDirectory.set(project.layout.projectDirectory)
-        }
+        val writeMineKotCodestyle =
+            project.tasks.register("writeMineKotCodestyle", WriteMineKotCodestyleTask::class.java) {
+                it.group = "minekot"
+                it.description = "Writes MineKot codestyle templates into the project root."
+                it.outputDirectory.set(project.layout.projectDirectory)
+            }
         project.tasks.register("writeMineKotProjectFiles", WriteMineKotProjectFilesTask::class.java) {
             it.group = "minekot"
             it.description = "Writes missing MineKot project standard files into the project root."
@@ -48,7 +53,14 @@ class MineKotToolchainPlugin : Plugin<Project> {
         project.tasks.register("mineKotSmokeTest") {
             it.group = "verification"
             it.description = "Runs the MineKot smoke verification task set."
-            it.dependsOn("check", "writeMineKotCodestyle")
+            it.dependsOn("check")
+        }
+
+        project.tasks.withType(ProcessResources::class.java).configureEach {
+            it.mustRunAfter(writeMineKotCodestyle)
+        }
+        project.tasks.withType(KotlinCompile::class.java).configureEach {
+            it.mustRunAfter(writeMineKotCodestyle)
         }
         project.tasks.register("mineKotInitializeProject") {
             it.group = "minekot"
@@ -72,6 +84,100 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
     }
 
+    private fun configureConventions(project: Project, extension: MineKotToolchainExtension) {
+        val fallbackToolchainVersion = javaClass.`package`.implementationVersion ?: "1.0-SNAPSHOT"
+
+        extension.dependencyGroup.gradlePropertyConvention(project, "minekotToolchain.dependencyGroup", "org.minekot")
+        extension.toolchainVersion.gradlePropertyConvention(
+            project,
+            "minekotToolchain.toolchainVersion",
+            fallbackToolchainVersion,
+        )
+
+        extension.build.javaVersion.gradlePropertyConvention(project, "minekotToolchain.build.javaVersion", 21)
+        extension.build.allWarningsAsErrors.gradlePropertyConvention(
+            project,
+            "minekotToolchain.build.allWarningsAsErrors",
+            false,
+        )
+        extension.build.contextParameters.gradlePropertyConvention(
+            project,
+            "minekotToolchain.build.contextParameters",
+            true,
+        )
+
+        extension.repositories.mavenCentral.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.mavenCentral",
+            true,
+        )
+        extension.repositories.mavenLocal.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.mavenLocal",
+            true,
+        )
+        extension.repositories.minekotReleases.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.minekotReleases",
+            true,
+        )
+        extension.repositories.minekotSnapshots.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.minekotSnapshots",
+            true,
+        )
+        extension.repositories.releasesUrl.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.releasesUrl",
+            DEFAULT_RELEASES_URL,
+        )
+        extension.repositories.snapshotsUrl.gradlePropertyConvention(
+            project,
+            "minekotToolchain.repositories.snapshotsUrl",
+            DEFAULT_SNAPSHOTS_URL,
+        )
+
+        extension.publishing.enabled.gradlePropertyConvention(project, "minekotToolchain.publishing.enabled", true)
+        extension.publishing.minekotRepository.gradlePropertyConvention(
+            project,
+            "minekotToolchain.publishing.minekotRepository",
+            true,
+        )
+        extension.publishing.releasesUrl.gradlePropertyConvention(
+            project,
+            "minekotToolchain.publishing.releasesUrl",
+            DEFAULT_RELEASES_URL,
+        )
+        extension.publishing.snapshotsUrl.gradlePropertyConvention(
+            project,
+            "minekotToolchain.publishing.snapshotsUrl",
+            DEFAULT_SNAPSHOTS_URL,
+        )
+
+        extension.shadow.enabled.gradlePropertyConvention(project, "minekotToolchain.shadow.enabled", false)
+        extension.shadow.classifier.gradlePropertyConvention(project, "minekotToolchain.shadow.classifier", "all")
+        extension.shadow.mergeServiceFiles.gradlePropertyConvention(
+            project,
+            "minekotToolchain.shadow.mergeServiceFiles",
+            true,
+        )
+
+        extension.reflection.enabled.gradlePropertyConvention(project, "minekotToolchain.reflection.enabled", true)
+        extension.serialization.configureVersionedConventions(project, "serialization", true, "1.11.0")
+        extension.io.configureVersionedConventions(project, "io", true, "0.9.1")
+        extension.coroutines.configureVersionedConventions(project, "coroutines", true, "1.11.0")
+        extension.atomic.configureVersionedConventions(project, "atomic", true, "0.33.0")
+        extension.testing.enabled.gradlePropertyConvention(project, "minekotToolchain.testing.enabled", true)
+        extension.adventure.configureVersionedConventions(project, "adventure", true, "5.2.0")
+        extension.lint.enabled.gradlePropertyConvention(project, "minekotToolchain.lint.enabled", true)
+        extension.lint.autoCorrect.gradlePropertyConvention(project, "minekotToolchain.lint.autoCorrect", false)
+        extension.lint.buildUponDefaultConfig.gradlePropertyConvention(
+            project,
+            "minekotToolchain.lint.buildUponDefaultConfig",
+            true,
+        )
+    }
+
     private fun configureRepositories(project: Project, repositories: RepositoriesFeatureBlock) {
         if (repositories.mavenCentral.get()) {
             project.addRepositoryIfAllowed {
@@ -87,7 +193,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             project.addRepositoryIfAllowed {
                 it.maven { repository ->
                     repository.name = "minekotReleases"
-                    repository.url = URI.create("https://maven.minekot.org/releases")
+                    repository.url = URI.create(repositories.releasesUrl.get())
                 }
             }
         }
@@ -95,7 +201,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             project.addRepositoryIfAllowed {
                 it.maven { repository ->
                     repository.name = "minekotSnapshots"
-                    repository.url = URI.create("https://maven.minekot.org/snapshots")
+                    repository.url = URI.create(repositories.snapshotsUrl.get())
                 }
             }
         }
@@ -127,9 +233,9 @@ class MineKotToolchainPlugin : Plugin<Project> {
                         repository.name = "minekot"
                         repository.url = URI.create(
                             if (project.version.toString().endsWith("SNAPSHOT")) {
-                                "https://maven.minekot.org/snapshots"
+                                publishing.snapshotsUrl.get()
                             } else {
-                                "https://maven.minekot.org/releases"
+                                publishing.releasesUrl.get()
                             },
                         )
                         repository.credentials { credentials ->
@@ -161,11 +267,15 @@ class MineKotToolchainPlugin : Plugin<Project> {
     }
 
     private fun configureDependencies(project: Project, extension: MineKotToolchainExtension) {
-        val toolchainVersion = javaClass.`package`.implementationVersion ?: "1.0-SNAPSHOT"
+        val dependencyGroup = extension.dependencyGroup.get()
+        val toolchainVersion = extension.toolchainVersion.get()
 
-        project.dependencies.add("implementation", minekotDependency("minekot-kt-common", toolchainVersion))
+        project.dependencies.add(
+            "implementation",
+            minekotDependency(dependencyGroup, "minekot-kt-common", toolchainVersion),
+        )
 
-        dependencyFeatureDescriptors(project, extension, toolchainVersion).forEach { descriptor ->
+        dependencyFeatureDescriptors(project, extension, dependencyGroup, toolchainVersion).forEach { descriptor ->
             if (descriptor.enabled()) {
                 descriptor.beforeAdd()
                 project.addDependencies(descriptor.configurationName, *descriptor.notations().toTypedArray())
@@ -174,18 +284,28 @@ class MineKotToolchainPlugin : Plugin<Project> {
     }
 
     private fun configureLint(project: Project, lint: LintFeatureBlock) {
-        val toolchainVersion = javaClass.`package`.implementationVersion ?: "1.0-SNAPSHOT"
+        val extension = project.extensions.getByType(MineKotToolchainExtension::class.java)
         project.pluginManager.apply("io.gitlab.arturbosch.detekt")
         project.extensions.configure(DetektExtension::class.java) {
             it.autoCorrect = lint.autoCorrect.get()
             it.buildUponDefaultConfig = lint.buildUponDefaultConfig.get()
-            val configFile = lint.configFile.orNull?.asFile
-                ?: project.layout.projectDirectory.file("config/detekt/minekot.yml").asFile.takeIf { file -> file.isFile }
+            val configFile =
+                lint.configFile.orNull?.asFile
+                    ?: project.layout.projectDirectory.file("config/detekt/minekot.yml").asFile.takeIf { file ->
+                        file.isFile
+                    }
             if (configFile != null) {
                 it.config.setFrom(configFile)
             }
         }
-        project.dependencies.add("detektPlugins", "org.minekot:minekot-toolchain-lint-rules:${toolchainVersion}")
+        project.dependencies.add(
+            "detektPlugins",
+            minekotDependency(
+                extension.dependencyGroup.get(),
+                "minekot-toolchain-lint-rules",
+                extension.toolchainVersion.get(),
+            ),
+        )
     }
 
     private fun Project.addDependencies(configurationName: String, vararg notations: String) {
@@ -194,18 +314,19 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
     }
 
-    private fun minekotDependency(moduleName: String, version: String): String =
-        "org.minekot:${moduleName}:${version}"
+    private fun minekotDependency(group: String, moduleName: String, version: String): String =
+        "${group}:${moduleName}:${version}"
 
     private fun dependencyFeatureDescriptors(
         project: Project,
         extension: MineKotToolchainExtension,
+        dependencyGroup: String,
         toolchainVersion: String,
     ): List<DependencyFeatureDescriptor> = listOf(
         DependencyFeatureDescriptor(
             configurationName = "implementation",
             enabled = { extension.reflection.enabled.get() },
-            notations = { listOf(minekotDependency("minekot-kt-reflection", toolchainVersion)) },
+            notations = { listOf(minekotDependency(dependencyGroup, "minekot-kt-reflection", toolchainVersion)) },
         ),
         DependencyFeatureDescriptor(
             configurationName = "implementation",
@@ -214,7 +335,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             notations = {
                 listOf(
                     "org.jetbrains.kotlinx:kotlinx-serialization-json:${extension.serialization.libraryVersion.get()}",
-                    minekotDependency("minekot-kt-serialization", toolchainVersion),
+                    minekotDependency(dependencyGroup, "minekot-kt-serialization", toolchainVersion),
                 )
             },
         ),
@@ -225,7 +346,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 listOf(
                     "org.jetbrains.kotlinx:kotlinx-io-core-jvm:${extension.io.libraryVersion.get()}",
                     "org.jetbrains.kotlinx:kotlinx-io-bytestring-jvm:${extension.io.libraryVersion.get()}",
-                    minekotDependency("minekot-kt-io", toolchainVersion),
+                    minekotDependency(dependencyGroup, "minekot-kt-io", toolchainVersion),
                 )
             },
         ),
@@ -235,7 +356,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             notations = {
                 listOf(
                     "org.jetbrains.kotlinx:kotlinx-coroutines-core:${extension.coroutines.libraryVersion.get()}",
-                    minekotDependency("minekot-kt-coroutines", toolchainVersion),
+                    minekotDependency(dependencyGroup, "minekot-kt-coroutines", toolchainVersion),
                 )
             },
         ),
@@ -245,7 +366,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             notations = {
                 listOf(
                     "org.jetbrains.kotlinx:atomicfu-jvm:${extension.atomic.libraryVersion.get()}",
-                    minekotDependency("minekot-kt-atomic", toolchainVersion),
+                    minekotDependency(dependencyGroup, "minekot-kt-atomic", toolchainVersion),
                 )
             },
         ),
@@ -253,14 +374,18 @@ class MineKotToolchainPlugin : Plugin<Project> {
             configurationName = "implementation",
             enabled = { extension.adventure.enabled.get() },
             notations = {
-                adventureModules.map { moduleName -> "net.kyori:${moduleName}:${extension.adventure.libraryVersion.get()}" } +
-                        minekotAdventureModules.map { moduleName -> minekotDependency(moduleName, toolchainVersion) }
+                adventureModules.map { moduleName ->
+                    "net.kyori:${moduleName}:${extension.adventure.libraryVersion.get()}"
+                } +
+                        minekotAdventureModules.map { moduleName ->
+                            minekotDependency(dependencyGroup, moduleName, toolchainVersion)
+                        }
             },
         ),
         DependencyFeatureDescriptor(
             configurationName = "testImplementation",
             enabled = { extension.testing.enabled.get() },
-            notations = { listOf(minekotDependency("minekot-kt-testing", toolchainVersion)) },
+            notations = { listOf(minekotDependency(dependencyGroup, "minekot-kt-testing", toolchainVersion)) },
         ),
     )
 
@@ -272,6 +397,9 @@ class MineKotToolchainPlugin : Plugin<Project> {
     )
 
     private companion object {
+        private const val DEFAULT_RELEASES_URL = "https://maven.minekot.org/releases"
+        private const val DEFAULT_SNAPSHOTS_URL = "https://maven.minekot.org/snapshots"
+
         private val adventureModules: List<String> = listOf(
             "adventure-api",
             "adventure-text-serializer-ansi",
@@ -294,4 +422,42 @@ class MineKotToolchainPlugin : Plugin<Project> {
             action.execute(repositories)
         }
     }
+
+    private fun VersionedFeatureBlock.configureVersionedConventions(
+        project: Project,
+        featureName: String,
+        enabled: Boolean,
+        version: String,
+    ) {
+        this.enabled.gradlePropertyConvention(project, "minekotToolchain.${featureName}.enabled", enabled)
+        this.libraryVersion.gradlePropertyConvention(project, "minekotToolchain.${featureName}.libraryVersion", version)
+    }
+
+    private fun Property<String>.gradlePropertyConvention(project: Project, name: String, defaultValue: String) {
+        convention(project.providers.gradleProperty(name).orElse(defaultValue))
+    }
+
+    private fun Property<Boolean>.gradlePropertyConvention(project: Project, name: String, defaultValue: Boolean) {
+        convention(
+            project.providers.gradleProperty(name).map { value -> value.toMineKotBooleanProperty(name) }
+                .orElse(defaultValue),
+        )
+    }
+
+    private fun Property<Int>.gradlePropertyConvention(project: Project, name: String, defaultValue: Int) {
+        convention(
+            project.providers.gradleProperty(name).map { value -> value.toMineKotIntProperty(name) }
+                .orElse(defaultValue),
+        )
+    }
+
+    private fun String.toMineKotBooleanProperty(name: String): Boolean =
+        when (lowercase()) {
+            "true" -> true
+            "false" -> false
+            else -> throw GradleException("Gradle property ${name} must be true or false, but was '${this}'.")
+        }
+
+    private fun String.toMineKotIntProperty(name: String): Int =
+        toIntOrNull() ?: throw GradleException("Gradle property ${name} must be an integer, but was '${this}'.")
 }

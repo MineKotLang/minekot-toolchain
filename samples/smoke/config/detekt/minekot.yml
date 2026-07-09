@@ -1,0 +1,25 @@
+minekot:
+  ForbiddenTryCatch:
+    active: true
+  StringTemplateBraces:
+    active: true
+  MiniMessageText:
+    active: true
+  MissingKDoc:
+    active: true
+  CoroutinePreference:
+    active: true
+  MagicNumber:
+    active: true
+  ResultHandling:
+    active: true
+  KotlinxPreference:
+    active: true
+  ExplicitScopeInNestedScope:
+    active: false
+    reason: "TODO: implement when PSI analysis is reliable enough to avoid false positives."
+
+style:
+  MaxLineLength:
+    active: true
+    maxLineLength: 120

@@ -1,0 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        mavenLocal()
+        maven("https://maven.minekot.org/releases")
+        maven("https://maven.minekot.org/snapshots")
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.__REPOSITORIES_MODE__)
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        mavenLocal()
+        maven("https://maven.minekot.org/releases")
+        maven("https://maven.minekot.org/snapshots")
+    }
+}
+rootProject.name = "smoke"

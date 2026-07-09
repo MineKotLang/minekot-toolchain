@@ -1,0 +1,10 @@
+<project version="4">
+    <component name="ExistingComponent">
+        <option name="keepMe" value="true" />
+    </component>
+    <component name="PropertiesComponent"><![CDATA[{
+      "keyToString": {
+        "existing.key": "kept"
+      }
+    }]]></component>
+</project>

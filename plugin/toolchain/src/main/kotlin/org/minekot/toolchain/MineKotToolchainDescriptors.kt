@@ -34,7 +34,6 @@ internal data class MineKotLibraryModuleDescriptor(
 )
 
 internal val mineKotCodestyleDescriptors: List<MineKotCodestyleDescriptor> = listOf(
-    MineKotCodestyleDescriptor("codestyle/editorconfig.template", ".editorconfig"),
     MineKotCodestyleDescriptor("codestyle/detekt.yml", "config/detekt/minekot.yml"),
     MineKotCodestyleDescriptor("codestyle/intellij-code-style.xml", ".idea/codeStyles/MineKot.xml"),
 )

@@ -10,6 +10,7 @@ plugins {
 }
 
 minekotToolchain {
+    toolchainVersion.set("x.y.z")
     serialization {
         enabled.set(true)
         libraryVersion.set("1.11.0")
@@ -34,6 +35,19 @@ Useful tasks:
 `plugin/toolchain/src/main/resources/project`; special resource names map to normal project paths:
 `gitattributes` to `.gitattributes`, `license` to `LICENSE`, `notice` to `NOTICE`, `readme` to `README.md`, and
 `changelog` to `CHANGELOG.md`.
+`writeMineKotCodestyle` also writes IntelliJ Actions on Save and commit cleanup defaults to `.idea/workspace.xml`.
+`mineKotSmokeTest` runs the standalone sample project against the current checkout; it does not write codestyle files.
+
+DSL values can also be supplied as Gradle project properties. Build script values override property conventions.
+
+```properties
+minekotToolchain.toolchainVersion=x.y.z
+minekotToolchain.dependencyGroup=org.minekot
+minekotToolchain.build.javaVersion=21
+minekotToolchain.serialization.libraryVersion=1.11.0
+minekotToolchain.repositories.releasesUrl=https://maven.minekot.org/releases
+minekotToolchain.repositories.snapshotsUrl=https://maven.minekot.org/snapshots
+```
 
 ## Libraries
 

@@ -1,12 +1,12 @@
 package org.minekot.toolchain
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
-import java.io.IOException
 import java.net.URL
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -25,42 +25,34 @@ abstract class WriteMineKotProjectFilesTask : DefaultTask() {
 
     /**
      * Writes bundled standard project files without replacing existing files.
-     *
-     * @throws IOException If file writing fails.
      */
     @TaskAction
-    @Throws(IOException::class)
     fun writeProjectFiles() {
         projectResources().forEach { descriptor ->
             writeResourceIfMissing(descriptor.resourcePath, descriptor.outputPath)
         }
     }
 
-    @Throws(IOException::class)
     private fun writeResourceIfMissing(resourceName: String, relativePath: String) {
         val target = outputDirectory.file(relativePath).get().asFile
         if (target.exists()) {
             return
         }
-        val text = javaClass.classLoader.getResource(resourceName)?.readText()
-            ?: error("Missing bundled resource ${resourceName}.")
-        target.parentFile.mkdirs()
-        target.writeText(text)
+        target.writeMineKotText(javaClass.classLoader.readMineKotResourceText(resourceName))
     }
 
-    @Throws(IOException::class)
     private fun projectResources(): List<MineKotResourceDescriptor> =
         resourcePaths("project").map { resourcePath ->
             MineKotResourceDescriptor(resourcePath, resourcePath.removePrefix("project/").toOutputPath())
         }
 
-    @Throws(IOException::class)
     private fun resourcePaths(root: String): List<String> {
-        val resource = javaClass.classLoader.getResource(root) ?: error("Missing bundled resource directory ${root}.")
+        val resource = javaClass.classLoader.getResource(root)
+            ?: throw GradleException("Missing bundled resource directory ${root}.")
         return when (resource.protocol) {
             "file" -> fileResourcePaths(root, resource)
             "jar" -> jarResourcePaths(root, resource)
-            else -> error("Unsupported resource protocol ${resource.protocol}.")
+            else -> throw GradleException("Unsupported resource protocol ${resource.protocol}.")
         }
     }
 
@@ -73,15 +65,18 @@ abstract class WriteMineKotProjectFilesTask : DefaultTask() {
             .toList()
     }
 
-    @Throws(IOException::class)
     private fun jarResourcePaths(root: String, resource: URL): List<String> {
         val jarPath = resource.path.substringBefore("!").removePrefix("file:")
-        return JarFile(URLDecoder.decode(jarPath, StandardCharsets.UTF_8)).use { jar ->
-            jar.entries().asSequence()
-                .map { entry -> entry.name }
-                .filter { name -> name.startsWith("${root}/") && !name.endsWith("/") }
-                .sorted()
-                .toList()
+        return runCatching {
+            JarFile(URLDecoder.decode(jarPath, StandardCharsets.UTF_8)).use { jar ->
+                jar.entries().asSequence()
+                    .map { entry -> entry.name }
+                    .filter { name -> name.startsWith("${root}/") && !name.endsWith("/") }
+                    .sorted()
+                    .toList()
+            }
+        }.getOrElse { failure ->
+            throw failure.asGradleException("Failed to scan bundled resource directory ${root}.")
         }
     }
 
