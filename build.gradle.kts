@@ -31,7 +31,7 @@ val artifactIds = mapOf(
     ":libraries:kotlin:minekot-kt-atomic" to "minekot-kt-atomic",
     ":libraries:kotlin:minekot-kt-testing" to "minekot-kt-testing",
     ":libraries:codegen:minekot-codegen-core" to "minekot-codegen-core",
-    ":libraries:codegen:minekot-ksp" to "minekot-ksp",
+    ":libraries:codegen:minekot-ksp-helpers" to "minekot-ksp-helpers",
     ":libraries:adventure:minekot-adv-common" to "minekot-adv-common",
     ":libraries:adventure:minekot-adv-ansi" to "minekot-adv-ansi",
     ":libraries:adventure:minekot-adv-json" to "minekot-adv-json",

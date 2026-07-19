@@ -9,6 +9,13 @@ pluginManagement {
     }
 }
 
+includeBuild("../..") {
+    dependencySubstitution {
+        substitute(module("org.minekot:minekot-toolchain-lint-rules"))
+            .using(project(":plugin:minekot-toolchain-lint-rules"))
+    }
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

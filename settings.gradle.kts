@@ -32,36 +32,23 @@ develocity {
     }
 }
 
-include(
-    ":plugin:toolchain",
-    ":plugin:lint-rules",
-    ":libraries:kotlin:common",
-    ":libraries:kotlin:reflection",
-    ":libraries:kotlin:serialization",
-    ":libraries:kotlin:io",
-    ":libraries:kotlin:coroutines",
-    ":libraries:kotlin:atomic",
-    ":libraries:kotlin:testing",
-    ":libraries:codegen:core",
-    ":libraries:codegen:ksp",
-    ":libraries:adventure:common",
-    ":libraries:adventure:ansi",
-    ":libraries:adventure:json",
-    ":libraries:adventure:minimessage",
-)
-
-project(":plugin:toolchain").name = "minekot-toolchain-gradle-plugin"
-project(":plugin:lint-rules").name = "minekot-toolchain-lint-rules"
-project(":libraries:kotlin:common").name = "minekot-kt-common"
-project(":libraries:kotlin:reflection").name = "minekot-kt-reflection"
-project(":libraries:kotlin:serialization").name = "minekot-kt-serialization"
-project(":libraries:kotlin:io").name = "minekot-kt-io"
-project(":libraries:kotlin:coroutines").name = "minekot-kt-coroutines"
-project(":libraries:kotlin:atomic").name = "minekot-kt-atomic"
-project(":libraries:kotlin:testing").name = "minekot-kt-testing"
-project(":libraries:codegen:core").name = "minekot-codegen-core"
-project(":libraries:codegen:ksp").name = "minekot-ksp"
-project(":libraries:adventure:common").name = "minekot-adv-common"
-project(":libraries:adventure:ansi").name = "minekot-adv-ansi"
-project(":libraries:adventure:json").name = "minekot-adv-json"
-project(":libraries:adventure:minimessage").name = "minekot-adv-minimessage"
+val projects = mapOf(
+    ":plugin:toolchain" to "minekot-toolchain-gradle-plugin",
+    ":plugin:lint-rules" to "minekot-toolchain-lint-rules",
+    ":libraries:kotlin:common" to "minekot-kt-common",
+    ":libraries:kotlin:reflection" to "minekot-kt-reflection",
+    ":libraries:kotlin:serialization" to "minekot-kt-serialization",
+    ":libraries:kotlin:io" to "minekot-kt-io",
+    ":libraries:kotlin:coroutines" to "minekot-kt-coroutines",
+    ":libraries:kotlin:atomic" to "minekot-kt-atomic",
+    ":libraries:kotlin:testing" to "minekot-kt-testing",
+    ":libraries:codegen:core" to "minekot-codegen-core",
+    ":libraries:codegen:ksp" to "minekot-ksp-helpers",
+    ":libraries:adventure:common" to "minekot-adv-common",
+    ":libraries:adventure:ansi" to "minekot-adv-ansi",
+    ":libraries:adventure:json" to "minekot-adv-json",
+    ":libraries:adventure:minimessage" to "minekot-adv-minimessage",
+).forEach { (project, name) ->
+    include(project)
+    project(project).name = name
+}

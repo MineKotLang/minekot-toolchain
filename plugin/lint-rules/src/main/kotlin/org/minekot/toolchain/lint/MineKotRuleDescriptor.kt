@@ -1,7 +1,7 @@
 package org.minekot.toolchain.lint
 
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Rule
+import dev.detekt.api.Config
+import dev.detekt.api.Rule
 
 /**
  * Metadata for a MineKot Detekt rule.
@@ -11,8 +11,6 @@ import io.gitlab.arturbosch.detekt.api.Rule
  * @property severity Rule severity name.
  * @property falsePositiveRisk False-positive risk description.
  * @property codestyleSection MineKot codestyle section implemented by this rule.
- * @property failingFixture Failing fixture name.
- * @property cleanFixture Clean fixture name.
  * @property factory Rule factory.
  */
 data class MineKotRuleDescriptor(
@@ -21,8 +19,6 @@ data class MineKotRuleDescriptor(
     val severity: String,
     val falsePositiveRisk: String,
     val codestyleSection: String,
-    val failingFixture: String,
-    val cleanFixture: String,
     val factory: (Config) -> Rule,
 )
 
@@ -36,8 +32,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "low",
         codestyleSection = "6.1 Error handling",
-        failingFixture = "forbidden-try-catch.kt",
-        cleanFixture = "run-catching.kt",
         factory = ::ForbiddenTryCatchRule,
     ),
     MineKotRuleDescriptor(
@@ -46,8 +40,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "low",
         codestyleSection = "4.6 String templates",
-        failingFixture = "simple-string-template.kt",
-        cleanFixture = "braced-string-template.kt",
         factory = ::StringTemplateBracesRule,
     ),
     MineKotRuleDescriptor(
@@ -56,8 +48,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "7.5 Text and localization",
-        failingFixture = "legacy-text.kt",
-        cleanFixture = "minimessage-text.kt",
         factory = ::MiniMessageTextRule,
     ),
     MineKotRuleDescriptor(
@@ -66,8 +56,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "8 Documentation and comments",
-        failingFixture = "missing-kdoc.kt",
-        cleanFixture = "documented-api.kt",
         factory = ::MissingKDocRule,
     ),
     MineKotRuleDescriptor(
@@ -76,8 +64,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "low",
         codestyleSection = "6.3 Concurrency",
-        failingFixture = "threading.kt",
-        cleanFixture = "coroutines.kt",
         factory = ::CoroutinePreferenceRule,
     ),
     MineKotRuleDescriptor(
@@ -86,8 +72,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "7.2 Zero hardcoding",
-        failingFixture = "magic-number.kt",
-        cleanFixture = "named-constant.kt",
         factory = ::MagicNumberRule,
     ),
     MineKotRuleDescriptor(
@@ -96,8 +80,6 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "6.1 Error handling",
-        failingFixture = "ignored-result.kt",
-        cleanFixture = "handled-result.kt",
         factory = ::ResultHandlingRule,
     ),
     MineKotRuleDescriptor(
@@ -106,8 +88,70 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "5.1 Library preference and 5.2 Kotlinx mandate",
-        failingFixture = "java-api.kt",
-        cleanFixture = "kotlinx-api.kt",
         factory = ::KotlinxPreferenceRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "TrailingComma",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "4.4 Trailing commas",
+        factory = ::TrailingCommaRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "ParameterWrapping",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "4.5 Parameter wrapping",
+        factory = ::ParameterWrappingRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "ForEachPreference",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "medium",
+        codestyleSection = "6.5 forEach loops",
+        factory = ::ForEachPreferenceRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "GradleDslConventions",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "Gradle sections 3, 5, 6, and 7",
+        factory = ::GradleDslConventionsRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "ImportPolicy",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "3.1 Imports",
+        factory = ::ImportPolicyRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "SourceFilePolicy",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "2 Source file basics and 4.2 Formatter control",
+        factory = ::SourceFilePolicyRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "CommentFormatting",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "8.4 Comment formatting",
+        factory = ::CommentFormattingRule,
+    ),
+    MineKotRuleDescriptor(
+        id = "ExplicitScopeInNestedScope",
+        defaultActive = false,
+        severity = "Style",
+        falsePositiveRisk = "medium",
+        codestyleSection = "6.2 Explicit scope resolution",
+        factory = ::ExplicitScopeInNestedScopeRule,
     ),
 )

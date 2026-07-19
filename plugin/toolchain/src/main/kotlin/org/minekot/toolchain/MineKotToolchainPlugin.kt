@@ -1,15 +1,18 @@
 package org.minekot.toolchain
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.extensions.DetektExtension
 import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.language.jvm.tasks.ProcessResources
@@ -30,14 +33,18 @@ class MineKotToolchainPlugin : Plugin<Project> {
 
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("org.jetbrains.kotlin.jvm")
+        project.pluginManager.apply("com.gradleup.shadow")
 
         project.extensions.configure(JavaPluginExtension::class.java) {
-            it.toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+            it.toolchain.languageVersion.convention(
+                extension.build.javaVersion.map { javaVersion -> JavaLanguageVersion.of(javaVersion) },
+            )
             it.withSourcesJar()
         }
         project.tasks.withType(Test::class.java).configureEach {
             it.useJUnitPlatform()
         }
+        project.pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
 
         val writeMineKotCodestyle =
             project.tasks.register("writeMineKotCodestyle", WriteMineKotCodestyleTask::class.java) {
@@ -53,7 +60,16 @@ class MineKotToolchainPlugin : Plugin<Project> {
         project.tasks.register("mineKotSmokeTest") {
             it.group = "verification"
             it.description = "Runs the MineKot smoke verification task set."
-            it.dependsOn("check")
+            it.dependsOn("check", "verifyMineKotCodestyle")
+        }
+        val verifyMineKotCodestyle =
+            project.tasks.register("verifyMineKotCodestyle", VerifyMineKotCodestyleTask::class.java) {
+                it.group = "verification"
+                it.description = "Verifies raw source files and repository-level MineKot codestyle policy."
+                it.projectDirectory.set(project.layout.projectDirectory)
+            }
+        project.tasks.named("check") {
+            it.dependsOn(verifyMineKotCodestyle)
         }
 
         project.tasks.withType(ProcessResources::class.java).configureEach {
@@ -174,7 +190,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.lint.buildUponDefaultConfig.gradlePropertyConvention(
             project,
             "minekotToolchain.lint.buildUponDefaultConfig",
-            true,
+            false,
         )
     }
 
@@ -210,8 +226,11 @@ class MineKotToolchainPlugin : Plugin<Project> {
     private fun configureBuild(project: Project, build: BuildFeatureBlock) {
         val javaVersion = build.javaVersion.get()
         project.extensions.configure(JavaPluginExtension::class.java) {
-            it.toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
             it.withJavadocJar()
+        }
+        project.tasks.withType(JavaCompile::class.java).configureEach {
+            it.options.release.set(javaVersion)
+            it.options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
         }
         project.tasks.withType(KotlinCompile::class.java).configureEach {
             it.compilerOptions.jvmTarget.set(JvmTarget.fromTarget(javaVersion.toString()))
@@ -257,9 +276,12 @@ class MineKotToolchainPlugin : Plugin<Project> {
     }
 
     private fun configureShadow(project: Project, shadow: ShadowFeatureBlock) {
-        project.pluginManager.apply("com.gradleup.shadow")
         project.tasks.withType(ShadowJar::class.java).configureEach {
             it.archiveClassifier.set(shadow.classifier)
+            it.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            it.filesMatching(listOf("META-INF/services/**", "META-INF/*.kotlin_module")) { details ->
+                details.duplicatesStrategy = DuplicatesStrategy.INCLUDE
+            }
             if (shadow.mergeServiceFiles.get()) {
                 it.mergeServiceFiles()
             }
@@ -285,10 +307,11 @@ class MineKotToolchainPlugin : Plugin<Project> {
 
     private fun configureLint(project: Project, lint: LintFeatureBlock) {
         val extension = project.extensions.getByType(MineKotToolchainExtension::class.java)
-        project.pluginManager.apply("io.gitlab.arturbosch.detekt")
+        project.pluginManager.apply("dev.detekt")
+        val javaVersion = extension.build.javaVersion.get()
         project.extensions.configure(DetektExtension::class.java) {
-            it.autoCorrect = lint.autoCorrect.get()
-            it.buildUponDefaultConfig = lint.buildUponDefaultConfig.get()
+            it.autoCorrect.set(lint.autoCorrect)
+            it.buildUponDefaultConfig.set(lint.buildUponDefaultConfig)
             val configFile =
                 lint.configFile.orNull?.asFile
                     ?: project.layout.projectDirectory.file("config/detekt/minekot.yml").asFile.takeIf { file ->
@@ -297,6 +320,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
             if (configFile != null) {
                 it.config.setFrom(configFile)
             }
+        }
+        project.tasks.withType(Detekt::class.java).configureEach {
+            it.jvmTarget.set(javaVersion.toString())
+            it.source(project.buildFile)
         }
         project.dependencies.add(
             "detektPlugins",
@@ -331,7 +358,6 @@ class MineKotToolchainPlugin : Plugin<Project> {
         DependencyFeatureDescriptor(
             configurationName = "implementation",
             enabled = { extension.serialization.enabled.get() },
-            beforeAdd = { project.pluginManager.apply("org.jetbrains.kotlin.plugin.serialization") },
             notations = {
                 listOf(
                     "org.jetbrains.kotlinx:kotlinx-serialization-json:${extension.serialization.libraryVersion.get()}",
@@ -403,7 +429,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
         private val adventureModules: List<String> = listOf(
             "adventure-api",
             "adventure-text-serializer-ansi",
-            "adventure-text-serializer-gson",
+            "adventure-text-serializer-json",
             "adventure-text-serializer-legacy",
             "adventure-text-minimessage",
             "adventure-text-serializer-plain",

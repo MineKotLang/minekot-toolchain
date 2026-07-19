@@ -1,18 +1,23 @@
 package org.minekot.toolchain.lint
 
-import io.gitlab.arturbosch.detekt.api.*
+import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Rule
+import dev.detekt.api.RuleName
 import org.jetbrains.kotlin.psi.KtImportDirective
 
 /**
  * Flags Java APIs where Kotlin standard library or kotlinx APIs are preferred.
  */
-class KotlinxPreferenceRule(config: Config) : Rule(config) {
-    override val issue: Issue = Issue(
+class KotlinxPreferenceRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
+    private val issue: Issue = Issue(
         id = "KotlinxPreference",
         severity = Severity.Style,
         description = "MineKot prefers Kotlin standard library and kotlinx APIs over Java equivalents.",
         debt = Debt.TEN_MINS,
     )
+
+    override val ruleName: RuleName get() = RuleName(issue.id)
 
     override fun visitImportDirective(importDirective: KtImportDirective) {
         super.visitImportDirective(importDirective)
@@ -36,6 +41,22 @@ class KotlinxPreferenceRule(config: Config) : Rule(config) {
             "java.util.ArrayList" to "Kotlin MutableList",
             "java.util.HashMap" to "Kotlin MutableMap",
             "java.util.HashSet" to "Kotlin MutableSet",
+            "java.io.BufferedInputStream" to "kotlinx-io Buffer",
+            "java.io.BufferedOutputStream" to "kotlinx-io Buffer",
+            "java.io.FileInputStream" to "kotlinx-io Source",
+            "java.io.FileOutputStream" to "kotlinx-io Sink",
+            "java.io.InputStream" to "kotlinx-io Source",
+            "java.io.OutputStream" to "kotlinx-io Sink",
+            "java.io.Reader" to "kotlinx-io Source",
+            "java.io.Writer" to "kotlinx-io Sink",
+            "java.util.concurrent.CompletableFuture" to "kotlinx-coroutines Deferred",
+            "java.util.concurrent.Executor" to "kotlinx-coroutines CoroutineDispatcher",
+            "java.util.concurrent.ExecutorService" to "kotlinx-coroutines CoroutineDispatcher",
+            "java.util.concurrent.Executors" to "kotlinx-coroutines",
+            "com.fasterxml.jackson.databind.ObjectMapper" to "kotlinx-serialization",
+            "com.google.gson.Gson" to "kotlinx-serialization",
+            "org.json.JSONArray" to "kotlinx-serialization",
+            "org.json.JSONObject" to "kotlinx-serialization",
         )
     }
 }

@@ -1,8 +1,11 @@
+# MineKot Detekt configuration
+# Enables MineKot codestyle rules and resolves overlaps with Detekt defaults.
 minekot:
   ForbiddenTryCatch:
     active: true
   StringTemplateBraces:
     active: true
+    autoCorrect: true
   MiniMessageText:
     active: true
   MissingKDoc:
@@ -15,11 +18,80 @@ minekot:
     active: true
   KotlinxPreference:
     active: true
+  TrailingComma:
+    active: true
+    autoCorrect: true
+  ParameterWrapping:
+    active: true
+    autoCorrect: true
+  ForEachPreference:
+    active: true
+  GradleDslConventions:
+    active: true
+    autoCorrect: true
+  ImportPolicy:
+    active: true
+    autoCorrect: true
+  SourceFilePolicy:
+    active: true
+    autoCorrect: true
+  CommentFormatting:
+    active: true
+    autoCorrect: true
   ExplicitScopeInNestedScope:
     active: false
-    reason: "TODO: implement when PSI analysis is reliable enough to avoid false positives."
 
 style:
+  MagicNumber:
+    active: false
   MaxLineLength:
     active: true
     maxLineLength: 120
+  NewLineAtEndOfFile:
+    active: true
+  NoTabs:
+    active: true
+  SpacingAfterPackageAndImports:
+    active: true
+  WildcardImport:
+    active: false
+
+coroutines:
+  SleepInsteadOfDelay:
+    active: false
+
+ktlint:
+  active: true
+  autoCorrect: true
+  Indentation:
+    active: true
+    indentSize: 4
+  NoBlankLineBeforeRbrace:
+    active: true
+  NoConsecutiveBlankLines:
+    active: true
+  NoEmptyFirstLineInClassBody:
+    active: true
+    indentSize: 4
+  NoEmptyFirstLineInMethodBlock:
+    active: true
+  NoMultipleSpaces:
+    active: true
+  NoTrailingSpaces:
+    active: true
+  SpacingAroundColon:
+    active: true
+  SpacingAroundComma:
+    active: true
+  SpacingAroundCurly:
+    active: true
+  SpacingAroundOperators:
+    active: true
+  SpacingAroundRangeOperator:
+    active: true
+  SpacingAroundUnaryOperator:
+    active: true
+  SpacingBetweenDeclarationsWithAnnotations:
+    active: true
+  SpacingBetweenDeclarationsWithComments:
+    active: true

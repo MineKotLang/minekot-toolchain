@@ -1,3 +1,2 @@
-fun main() {
-    println("Smoke test project")
-}
+/** Runs the standalone toolchain smoke application. */
+fun main(): Unit = Unit

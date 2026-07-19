@@ -1,12 +1,12 @@
 package org.minekot.adventure.json
 
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer
 
 /**
- * Shared Gson serializer for MineKot Adventure components.
+ * Shared JSON serializer for MineKot Adventure components.
  */
-val MineKotAdventureJson: GsonComponentSerializer = GsonComponentSerializer.gson()
+val MineKotAdventureJson: JSONComponentSerializer = JSONComponentSerializer.json()
 
 /**
  * Serializes a component to Adventure JSON.

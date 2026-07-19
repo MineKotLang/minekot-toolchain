@@ -6,7 +6,10 @@ plugins {
 
 dependencies {
     compileOnly(libs.detekt.api)
-    testImplementation(libs.detekt.test)
+    api(libs.detekt.formatting)
+    testImplementation(libs.detekt.api)
+    testImplementation(libs.detekt.test.utils)
+    testRuntimeOnly(libs.detekt.psi.utils)
     testImplementation(libs.junit.jupiter)
 }
 

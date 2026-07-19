@@ -32,7 +32,7 @@ minekotToolchain {
 tasks.register("printMineKotDisabledFeatures") {
     doLast {
         println("serializationPlugin=${project.plugins.hasPlugin("org.jetbrains.kotlin.plugin.serialization")}")
-        println("detekt=${project.plugins.hasPlugin("io.gitlab.arturbosch.detekt")}")
+        println("detekt=${project.plugins.hasPlugin("dev.detekt")}")
         project.configurations.getByName("implementation").dependencies.forEach {
             println("${it.group}:${it.name}:${it.version}")
         }

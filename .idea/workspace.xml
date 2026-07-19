@@ -1,52 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AIDiffSettings">
+    <option name="showAIDiff" value="false" />
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: enhance codestyle generation, add property conventions and smoke test&#10;&#10;- Replace `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor test suite to load Gradle build scripts from external fixture files.">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/all-features.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/build-options.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/conventions.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/default-disabled-lint.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/dependencies-enabled.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/disabled-features.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/initialize-dependencies.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint-options.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/no-publishing.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/properties-conventions.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/publishing.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/repositories.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/serialization-custom.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/shadow-merge.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/shadow.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/smoke-dependencies.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/static-publishing.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/existing-workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/settings.gradle.kts.template" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/.idea/codeStyles/MineKot.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/build.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/config/detekt/minekot.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/settings.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/samples/smoke/src/main/kotlin/Example.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="chore: upgrade to Detekt 2 and Adventure JSON serializer&#10;&#10;- Update Detekt to 2.0.0-alpha.5, migrating all custom lint rules and the Gradle plugin to the new `dev.detekt` API.&#10;- Introduce `MineKotDetektCompatibility` to maintain compatibility with legacy Detekt 1 rule descriptors.&#10;- Replace `adventure-text-serializer-gson` with `adventure-text-serializer-json` in version catalog, toolchain plugin, and Adventure JSON library.&#10;- Add Detekt baseline file support to `MineKotToolchainExtension`.&#10;- Configure `DuplicatesStrategy` for `ShadowJar` tasks in the toolchain plugin to prevent build errors.&#10;- Add `kotlin-test` and `kotlin-test-junit5` to the testing library module dependencies.&#10;- Refactor `settings.gradle.kts` to include and name subprojects using a map iteration.">
+      <change afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotDetektCompatibility.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/resources/META-INF/services/dev.detekt.api.RuleSetProvider" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRuleTestExtensions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/libraries/kotlin/io/src/main/kotlin/org/minekot/kotlin/io/MineKotPathTree.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/io/src/main/kotlin/org/minekot/kotlin/io/MineKotPathTree.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/adventure/json/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/adventure/json/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/adventure/json/src/main/kotlin/org/minekot/adventure/json/MineKotAdventureJson.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/adventure/json/src/main/kotlin/org/minekot/adventure/json/MineKotAdventureJson.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/ksp/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/ksp/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspAnnotations.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspAnnotations.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspResolver.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspResolver.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspSymbols.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/ksp/src/main/kotlin/org/minekot/codegen/ksp/MineKotKspSymbols.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/ksp/src/test/kotlin/org/minekot/codegen/ksp/MineKotKspTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/ksp/src/test/kotlin/org/minekot/codegen/ksp/MineKotKspTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/kotlin/common/src/main/kotlin/org/minekot/kotlin/common/MineKotLibraryFeatures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/common/src/main/kotlin/org/minekot/kotlin/common/MineKotLibraryFeatures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/kotlin/reflection/src/main/kotlin/org/minekot/kotlin/reflection/MineKotConstructors.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/reflection/src/main/kotlin/org/minekot/kotlin/reflection/MineKotConstructors.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/kotlin/testing/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/testing/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CoroutinePreferenceRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CoroutinePreferenceRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ForbiddenTryCatchRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ForbiddenTryCatchRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/KotlinxPreferenceRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/KotlinxPreferenceRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MagicNumberRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MagicNumberRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleDescriptor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleDescriptor.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleSetProvider.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleSetProvider.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MiniMessageTextRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MiniMessageTextRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MissingKDocRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MissingKDocRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResultHandlingRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResultHandlingRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/StringTemplateBracesRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/StringTemplateBracesRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/resources/META-INF/services/io.gitlab.arturbosch.detekt.api.RuleSetProvider" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRulesTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRulesTest.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainDescriptors.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainDescriptors.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainExtension.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainExtension.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainPlugin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainPlugin.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/WriteMineKotCodestyleTask.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/WriteMineKotCodestyleTask.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/WriteMineKotProjectFilesTask.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/WriteMineKotProjectFilesTask.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/editorconfig.template" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/intellij-code-style.xml" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/intellij-code-style.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/detekt.yml" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/detekt.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/kotlin/org/minekot/toolchain/MineKotToolchainPluginTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/kotlin/org/minekot/toolchain/MineKotToolchainPluginTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/disabled-features.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/disabled-features.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint-options.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint-options.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/lint.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/shadow.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/shadow.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/config/detekt/minekot.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/src/main/kotlin/Example.kt" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/src/main/kotlin/Example.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +60,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="604" />
+    <option name="cachedIndexableFilesCount" value="330" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExternalProjectsData">
@@ -89,19 +95,12 @@
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-                <item name="minekot" type="c8890929:TasksNode$1" />
+                <item name="libraries" type="2d1252cf:ModuleNode" />
               </path>
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
-                <item name="samples" type="2d1252cf:ModuleNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
-                <item name="samples" type="2d1252cf:ModuleNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="plugin" type="2d1252cf:ModuleNode" />
               </path>
             </expand>
             <select />
@@ -139,61 +138,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0000000000120701" />
-      <entry key="S10" value="1.000008624689827" />
-      <entry key="S30" value="1.0807698172480598" />
-      <entry key="S60" value="1.964339363178474" />
-      <entry key="M2" value="5.091453186612364" />
-      <entry key="M5" value="15.1565052230232" />
-      <entry key="M10" value="25.857863690449534" />
-      <entry key="M15" value="31.66206860487844" />
-      <entry key="M30" value="40.21348141952974" />
-      <entry key="H1" value="51.04331360718992" />
-      <entry key="H2" value="66.6539362820035" />
-      <entry key="H4" value="82.1382515518909" />
-      <entry key="D1" value="102.69396591566375" />
-      <entry key="W1" value="107.21292187833735" />
+      <entry key="MS100" value="1.5539472012842859" />
+      <entry key="MS500" value="3.029149564881261" />
+      <entry key="S2" value="4.7975770489115455" />
+      <entry key="S5" value="7.45308550309472" />
+      <entry key="S10" value="11.196839564472887" />
+      <entry key="S30" value="19.694785482416098" />
+      <entry key="S60" value="26.911481954371066" />
+      <entry key="M2" value="37.66381599737139" />
+      <entry key="M5" value="54.458089233342456" />
+      <entry key="M10" value="66.22866073790199" />
+      <entry key="M15" value="74.03678569694888" />
+      <entry key="M30" value="89.96623682362193" />
+      <entry key="H1" value="108.6347666715616" />
+      <entry key="H2" value="130.4741221184031" />
+      <entry key="H4" value="151.12814954025234" />
+      <entry key="D1" value="178.76540361636066" />
+      <entry key="W1" value="184.92390552089347" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="2.491743683291396E-123" />
-      <entry key="S2" value="2.2342195181618614E-31" />
-      <entry key="S5" value="5.490986002253049E-13" />
-      <entry key="S10" value="7.410118759003178E-7" />
-      <entry key="S30" value="0.009049357400657937" />
-      <entry key="S60" value="0.0959303330257557" />
-      <entry key="M2" value="0.3695747197264541" />
-      <entry key="M5" value="1.5453442926255145" />
-      <entry key="M10" value="3.124045316704529" />
-      <entry key="M15" value="4.058918056593373" />
-      <entry key="M30" value="5.595910889282272" />
-      <entry key="H1" value="7.856806879655245" />
-      <entry key="H2" value="11.200677028277658" />
-      <entry key="H4" value="14.505609568933005" />
-      <entry key="D1" value="18.87466523801637" />
-      <entry key="W1" value="19.833123740673436" />
+      <entry key="MS100" value="9.813078612270506E-18" />
+      <entry key="MS500" value="4.1155238313272794E-4" />
+      <entry key="S2" value="0.20329648094460523" />
+      <entry key="S5" value="0.7861074603943585" />
+      <entry key="S10" value="1.24977750158232" />
+      <entry key="S30" value="1.7792888498503348" />
+      <entry key="S60" value="2.5575330902526483" />
+      <entry key="M2" value="4.568084081086263" />
+      <entry key="M5" value="8.117062778438804" />
+      <entry key="M10" value="10.4230708258107" />
+      <entry key="M15" value="11.760274783572482" />
+      <entry key="M30" value="14.340033748995648" />
+      <entry key="H1" value="17.588567893527784" />
+      <entry key="H2" value="21.772752818821093" />
+      <entry key="H4" value="25.897556216283935" />
+      <entry key="D1" value="31.518200906458866" />
+      <entry key="W1" value="32.779392162205475" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="8.222861186924383E-5" />
-      <entry key="MS500" value="0.1524068867595379" />
-      <entry key="S2" value="0.6248145695353906" />
-      <entry key="S5" value="0.8285151594719313" />
-      <entry key="S10" value="0.9102364648143797" />
-      <entry key="S30" value="1.0555308262188408" />
-      <entry key="S60" value="2.0271077623350524" />
-      <entry key="M2" value="5.420915869646366" />
-      <entry key="M5" value="16.65013502571764" />
-      <entry key="M10" value="28.93274949854868" />
-      <entry key="M15" value="35.679082113363236" />
-      <entry key="M30" value="45.78156451174548" />
-      <entry key="H1" value="58.88208190725052" />
-      <entry key="H2" value="77.84269939503832" />
-      <entry key="H4" value="96.63646766411152" />
-      <entry key="D1" value="121.56707962857011" />
-      <entry key="W1" value="127.04581391486077" />
+      <entry key="MS100" value="1.5199676237724817" />
+      <entry key="MS500" value="3.0191175988753565" />
+      <entry key="S2" value="4.955034978606753" />
+      <entry key="S5" value="8.152487211491756" />
+      <entry key="S10" value="12.353186781904245" />
+      <entry key="S30" value="21.402060493041095" />
+      <entry key="S60" value="29.389795656323574" />
+      <entry key="M2" value="42.135718045703264" />
+      <entry key="M5" value="62.495236368867964" />
+      <entry key="M10" value="76.59574383816292" />
+      <entry key="M15" value="85.75127640607323" />
+      <entry key="M30" value="104.27343628033995" />
+      <entry key="H1" value="126.200554516371" />
+      <entry key="H2" value="152.23161029622005" />
+      <entry key="H4" value="177.0162050643919" />
+      <entry key="D1" value="210.28159930048338" />
+      <entry key="W1" value="217.70299771630593" />
     </decayedShown>
   </component>
   <component name="OptimizeOnSaveOptions">
@@ -214,45 +213,45 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Gradle.minekot-toolchain [build].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.minekot-toolchain [mineKotSmokeTest].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.minekot-toolchain [publishToMavenLocal].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.minekot-toolchain [publish].executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;SHFMT.PATH&quot;: &quot;/home/GuavaDealer/.local/share/JetBrains/IntelliJIdea2026.1/Shell Script/shfmt&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;code.cleanup.on.save&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kobweb-plugin-state&quot;: &quot;DISABLED&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/mnt/PortableSSD/Documents/code/__Minecraft/MineKot/Repositories/dev.minekot.org&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15314402&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.46642685&quot;,
-    &quot;rearrange.code.on.save&quot;: &quot;true&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.sourceCode.yaml&quot;,
-    &quot;settings.editor.splitter.proportion&quot;: &quot;0.30120483&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Gradle.minekot-toolchain [build].executor": "Run",
+    "Gradle.minekot-toolchain [mineKotSmokeTest].executor": "Run",
+    "Gradle.minekot-toolchain [publishToMavenLocal].executor": "Run",
+    "Gradle.minekot-toolchain [publish].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "SHFMT.PATH": "/home/GuavaDealer/.local/share/JetBrains/IntelliJIdea2026.1/Shell Script/shfmt",
+    "cidr.known.project.marker": "true",
+    "code.cleanup.on.save": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kobweb-plugin-state": "DISABLED",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/mnt/PortableSSD/Documents/code/__Minecraft/MineKot/Repositories/minekot-toolchain",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15314402",
+    "project.structure.side.proportion": "0.46642685",
+    "rearrange.code.on.save": "true",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "preferences.sourceCode.yaml",
+    "settings.editor.splitter.proportion": "0.30120483",
+    "to.speed.mode.migration.done": "true"
   }
-}</component>
+}]]></component>
   <component name="QodanaReportsService">
     <option name="descriptions">
       <ReportDescription localRun="true" path="/tmp/qodana_output/qodana.sarif.json" reportGuid="d0a971f6-6bbc-4bd2-88a2-6dbe4d3894dc" reportId="minekot-toolchain/qodana/2026-07-06" />
@@ -364,15 +363,6 @@
       <RunAsTest>false</RunAsTest>
       <GradleProfilingDisabled>false</GradleProfilingDisabled>
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="JetRunConfigurationType">
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <option name="filePath" />
       <method v="2" />
     </configuration>
     <recent_temporary>
@@ -512,7 +502,23 @@
       <option name="project" value="LOCAL" />
       <updated>1783380001962</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="feat: enhance codestyle generation, add property conventions, and add smoke test&#10;&#10;- Replace the `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files instead of inline strings.">
+      <option name="closed" value="true" />
+      <created>1783567342091</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1783567342091</updated>
+    </task>
+    <task id="LOCAL-00016" summary="feat: enhance codestyle generation, add property conventions, and add smoke test&#10;&#10;- Replace the `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files instead of inline strings.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;">
+      <option name="closed" value="true" />
+      <created>1783567362578</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1783567362578</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -550,7 +556,10 @@
     <MESSAGE value="ci: add GitHub Actions build workflow&#10;&#10;- Add `build.yml` workflow to automate building and testing the project with Gradle and JDK 25 on push and pull requests to the master branch." />
     <MESSAGE value="big brain&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
     <MESSAGE value="feat: enhance codestyle generation, add property conventions and smoke test&#10;&#10;- Replace `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor test suite to load Gradle build scripts from external fixture files." />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: enhance codestyle generation, add property conventions and smoke test&#10;&#10;- Replace `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor test suite to load Gradle build scripts from external fixture files." />
+    <MESSAGE value="```text&#10;feat: enhance codestyle generation, add property conventions and smoke test&#10;&#10;- Replace `.editorconfig` template with IntelliJ `.idea` workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` project and execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files.&#10;```" />
+    <MESSAGE value="feat: enhance codestyle generation, add property conventions, and add smoke test&#10;&#10;- Replace the `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files instead of inline strings." />
+    <MESSAGE value="feat: enhance codestyle generation, add property conventions, and add smoke test&#10;&#10;- Replace the `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files instead of inline strings.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: enhance codestyle generation, add property conventions, and add smoke test&#10;&#10;- Replace the `.editorconfig` template with IntelliJ `.idea` code style and workspace XML generation to automatically enforce format-on-save and pre-commit cleanup actions.&#10;- Add Gradle property conventions for toolchain configuration, allowing fallback values to be read from `gradle.properties`.&#10;- Add a standalone `mineKotSmokeTest` execution task to verify the toolchain application.&#10;- Refactor the test suite to load Gradle build scripts from external fixture files instead of inline strings.&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />

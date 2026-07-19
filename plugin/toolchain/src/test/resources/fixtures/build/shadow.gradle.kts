@@ -18,5 +18,6 @@ tasks.register("printMineKotShadow") {
             project.tasks.named("shadowJar").get() as com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
         println("shadow=${project.plugins.hasPlugin("com.gradleup.shadow")}")
         println("classifier=${shadowJar.archiveClassifier.get()}")
+        println("duplicates=${shadowJar.duplicatesStrategy}")
     }
 }

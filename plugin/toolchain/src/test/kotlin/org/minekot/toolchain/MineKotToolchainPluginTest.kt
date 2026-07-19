@@ -63,7 +63,7 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotDisabledFeatures")?.outcome)
         assertTrue(result.output.contains("org.minekot:minekot-kt-common"))
-        assertTrue(result.output.contains("serializationPlugin=false"))
+        assertTrue(result.output.contains("serializationPlugin=true"))
         assertTrue(result.output.contains("detekt=false"))
         assertFalse(result.output.contains("org.minekot:minekot-kt-reflection"))
         assertFalse(result.output.contains("org.minekot:minekot-kt-serialization"))
@@ -225,6 +225,7 @@ class MineKotToolchainPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotShadow")?.outcome)
         assertTrue(result.output.contains("shadow=true"))
         assertTrue(result.output.contains("classifier=bundle"))
+        assertTrue(result.output.contains("duplicates=EXCLUDE"))
     }
 
     @Test
@@ -247,6 +248,7 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotLint")?.outcome)
         assertTrue(result.output.contains("detekt=true"))
+        assertTrue(result.output.contains("buildUponDefaultConfig=false"))
         assertTrue(result.output.contains("org.minekot:minekot-toolchain-lint-rules"))
     }
 
@@ -276,6 +278,54 @@ class MineKotToolchainPluginTest {
         assertTrue(Files.exists(projectDirectory.resolve("config/detekt/minekot.yml")))
         assertTrue(Files.exists(projectDirectory.resolve(".idea/codeStyles/MineKot.xml")))
         assertTrue(Files.exists(projectDirectory.resolve(".idea/workspace.xml")))
+
+        val detektConfig = projectDirectory.resolve("config/detekt/minekot.yml").toFile().readText()
+        val configuredMineKotRules = Regex("^    ([A-Z][A-Za-z]+):$", RegexOption.MULTILINE)
+            .findAll(detektConfig.substringBefore("\nstyle:"))
+            .map { match -> match.groupValues[1] }
+            .toSet()
+        val activeMineKotRules = setOf(
+            "ForbiddenTryCatch",
+            "StringTemplateBraces",
+            "MiniMessageText",
+            "MissingKDoc",
+            "CoroutinePreference",
+            "MagicNumber",
+            "ResultHandling",
+            "KotlinxPreference",
+            "TrailingComma",
+            "ParameterWrapping",
+            "ForEachPreference",
+            "GradleDslConventions",
+            "ImportPolicy",
+            "SourceFilePolicy",
+            "CommentFormatting",
+        )
+
+        assertEquals(activeMineKotRules + "ExplicitScopeInNestedScope", configuredMineKotRules)
+        activeMineKotRules.forEach { ruleName ->
+            assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true"))
+        }
+        assertTrue(detektConfig.contains("    ExplicitScopeInNestedScope:\n        active: false"))
+        val autoCorrectableMineKotRules = setOf(
+            "StringTemplateBraces",
+            "TrailingComma",
+            "ParameterWrapping",
+            "GradleDslConventions",
+            "ImportPolicy",
+            "SourceFilePolicy",
+            "CommentFormatting",
+        )
+        autoCorrectableMineKotRules.forEach { ruleName ->
+            assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true\n        autoCorrect: true"))
+        }
+        assertTrue(detektConfig.contains("maxLineLength: 120"))
+        assertTrue(detektConfig.contains("    NewLineAtEndOfFile:\n        active: true"))
+        assertTrue(detektConfig.contains("    NoTabs:\n        active: true"))
+        assertTrue(detektConfig.contains("    SpacingAfterPackageAndImports:\n        active: true"))
+        assertTrue(detektConfig.contains("    MagicNumber:\n        active: false"))
+        assertTrue(detektConfig.contains("    WildcardImport:\n        active: false"))
+        assertTrue(detektConfig.contains("    SleepInsteadOfDelay:\n        active: false"))
 
         val workspace = projectDirectory.resolve(".idea/workspace.xml").toFile().readText()
 
@@ -354,7 +404,60 @@ class MineKotToolchainPluginTest {
             assertTrue(descriptor.outputPath.isNotBlank())
         }
         assertTrue(mineKotLibraryModuleDescriptors.any { it.artifactId == "minekot-codegen-core" })
-        assertTrue(mineKotLibraryModuleDescriptors.any { it.artifactId == "minekot-ksp" })
+        assertTrue(mineKotLibraryModuleDescriptors.any { it.artifactId == "minekot-ksp-helpers" })
+    }
+
+    @Test
+    fun `codestyle verification accepts compliant repository files`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        writeGradleProperties(
+            projectDirectory,
+            "org.gradle.caching=true",
+            "org.gradle.parallel=true",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("fun main(): Unit = Unit\n")
+
+        val result = runGradle(projectDirectory, "verifyMineKotCodestyle")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":verifyMineKotCodestyle")?.outcome)
+    }
+
+    @Test
+    fun `codestyle verification reports every repository policy violation`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        writeGradleProperties(
+            projectDirectory,
+            "org.gradle.caching=false",
+            "org.gradle.parallel=false",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Bad.kt")
+        Files.createDirectories(sourceFile.parent)
+        Files.write(
+            sourceFile,
+            byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) +
+                    "fun main(): Unit = Unit\r\n".toByteArray(),
+        )
+        val noFinalNewlineFile = projectDirectory.resolve("src/main/kotlin/NoFinalNewline.kt")
+        noFinalNewlineFile.toFile().writeText("val answer: Int = 42")
+        val groovyBuildFile = projectDirectory.resolve("legacy/build.gradle")
+        Files.createDirectories(groovyBuildFile.parent)
+        groovyBuildFile.toFile().writeText("plugins {}\n")
+        projectDirectory.resolve("legacy/Helper.groovy").toFile().writeText("class Helper {}\n")
+
+        val result = runGradleAndFail(projectDirectory, "verifyMineKotCodestyle")
+
+        assertEquals(TaskOutcome.FAILED, result.task(":verifyMineKotCodestyle")?.outcome)
+        assertTrue(result.output.contains("src/main/kotlin/Bad.kt: remove UTF-8 BOM"))
+        assertTrue(result.output.contains("src/main/kotlin/Bad.kt: use LF line endings"))
+        assertTrue(result.output.contains("src/main/kotlin/NoFinalNewline.kt: end with exactly one newline"))
+        assertTrue(result.output.contains("legacy/build.gradle: Groovy is forbidden; use Kotlin instead"))
+        assertTrue(result.output.contains("legacy/Helper.groovy: Groovy is forbidden; use Kotlin instead"))
+        assertTrue(result.output.contains("gradle.properties: set org.gradle.caching=true"))
+        assertTrue(result.output.contains("gradle.properties: set org.gradle.parallel=true"))
     }
 
     @Test

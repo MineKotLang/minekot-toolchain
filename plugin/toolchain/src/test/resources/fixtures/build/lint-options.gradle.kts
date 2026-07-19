@@ -12,9 +12,9 @@ minekotToolchain {
 
 tasks.register("printMineKotLintOptions") {
     doLast {
-        val detekt = project.extensions.getByType(io.gitlab.arturbosch.detekt.extensions.DetektExtension::class.java)
-        println("autoCorrect=${detekt.autoCorrect}")
-        println("buildUponDefaultConfig=${detekt.buildUponDefaultConfig}")
+        val detekt = project.extensions.getByType(dev.detekt.gradle.extensions.DetektExtension::class.java)
+        println("autoCorrect=${detekt.autoCorrect.get()}")
+        println("buildUponDefaultConfig=${detekt.buildUponDefaultConfig.get()}")
         detekt.config.files.forEach {
             println("config=${it.name}")
         }

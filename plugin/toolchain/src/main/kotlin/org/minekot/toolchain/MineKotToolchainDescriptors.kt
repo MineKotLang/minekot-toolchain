@@ -49,7 +49,7 @@ internal val mineKotLibraryModuleDescriptors: List<MineKotLibraryModuleDescripto
     MineKotLibraryModuleDescriptor(":libraries:kotlin:minekot-kt-atomic", "minekot-kt-atomic"),
     MineKotLibraryModuleDescriptor(":libraries:kotlin:minekot-kt-testing", "minekot-kt-testing"),
     MineKotLibraryModuleDescriptor(":libraries:codegen:minekot-codegen-core", "minekot-codegen-core"),
-    MineKotLibraryModuleDescriptor(":libraries:codegen:minekot-ksp", "minekot-ksp"),
+    MineKotLibraryModuleDescriptor(":libraries:codegen:minekot-ksp-helpers", "minekot-ksp-helpers"),
     MineKotLibraryModuleDescriptor(":libraries:adventure:minekot-adv-common", "minekot-adv-common"),
     MineKotLibraryModuleDescriptor(":libraries:adventure:minekot-adv-ansi", "minekot-adv-ansi"),
     MineKotLibraryModuleDescriptor(":libraries:adventure:minekot-adv-json", "minekot-adv-json"),

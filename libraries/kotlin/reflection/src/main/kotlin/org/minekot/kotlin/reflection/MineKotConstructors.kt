@@ -16,7 +16,7 @@ fun KClass<*>.primaryConstructorParameterNames(): Set<String> =
         .orEmpty()
 
 /**
- * Calls the primary constructor with arguments matched by parameter name.
+ * Calls the primary constructor with arguments matched by the parameter name.
  *
  * @param arguments Constructor arguments by name.
  * @return Created instance.

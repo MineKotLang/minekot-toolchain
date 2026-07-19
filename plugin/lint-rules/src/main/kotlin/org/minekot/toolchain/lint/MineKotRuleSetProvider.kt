@@ -1,18 +1,18 @@
 package org.minekot.toolchain.lint
 
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.RuleSet
-import io.gitlab.arturbosch.detekt.api.RuleSetProvider
+import dev.detekt.api.RuleSet
+import dev.detekt.api.RuleSetId
+import dev.detekt.api.RuleSetProvider
 
 /**
  * Provides MineKot Detekt rules.
  */
 class MineKotRuleSetProvider : RuleSetProvider {
-    override val ruleSetId: String = "minekot"
+    override val ruleSetId: RuleSetId = RuleSetId("minekot")
 
-    override fun instance(config: Config): RuleSet =
+    override fun instance(): RuleSet =
         RuleSet(
             ruleSetId,
-            mineKotRuleDescriptors.map { descriptor -> descriptor.factory(config) },
+            mineKotRuleDescriptors.map { descriptor -> descriptor.factory },
         )
 }

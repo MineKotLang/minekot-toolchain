@@ -299,7 +299,7 @@ abstract class FeatureBlock @Inject constructor(objects: ObjectFactory) {
 }
 
 /**
- * Toggleable extension block with upstream library version.
+ * Toggleable extension block with the upstream library version.
  */
 abstract class VersionedFeatureBlock @Inject constructor(objects: ObjectFactory) : FeatureBlock(objects) {
     /**
@@ -371,5 +371,5 @@ private fun ObjectFactory.lintFeatureBlock(enabled: Boolean): LintFeatureBlock =
     newInstance(LintFeatureBlock::class.java).apply {
         this.enabled.convention(enabled)
         autoCorrect.convention(false)
-        buildUponDefaultConfig.convention(true)
+        buildUponDefaultConfig.convention(false)
     }

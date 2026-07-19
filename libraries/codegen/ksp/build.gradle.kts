@@ -12,6 +12,6 @@ dependencies {
 
 publishing {
     publications.withType<MavenPublication>().configureEach {
-        artifactId = "minekot-ksp"
+        artifactId = "minekot-ksp-helpers"
     }
 }

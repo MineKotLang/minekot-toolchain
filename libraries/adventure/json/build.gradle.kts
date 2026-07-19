@@ -6,7 +6,8 @@ plugins {
 
 dependencies {
     api(project(":libraries:adventure:minekot-adv-common"))
-    api(libs.adventure.gson)
+    api(libs.adventure.json)
+    testRuntimeOnly(libs.adventure.gson)
 }
 
 publishing {

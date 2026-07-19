@@ -61,7 +61,7 @@ Library features are tracked by `mineKotLibraryFeatureDescriptors` so docs/tests
 - `minekot-kt-reflection`: `reflection-access`, `reflection-services`; property lookup/maps, named primary-constructor calls, annotations, sealed subclass lookup, ServiceLoader helpers.
 - `minekot-kt-testing`: `test-fixtures`; Result assertions, temp project cleanup, path assertions, Gradle fixture files.
 - `minekot-codegen-core`: `kotlinpoet-models`, `kotlinpoet-shapes`; KotlinPoet-safe names, generated headers, object/data-class/enum/sealed-interface render models.
-- `minekot-ksp`: `ksp-symbols`; annotated symbol readers, validation/deferred helpers, typed annotation arguments, file writes.
+- `minekot-ksp-helpers`: `ksp-symbols`; type-safe annotation, argument, class, and symbol readers plus validation and file writes.
 - `minekot-adv-common`: `component-basics`, `component-layout`; component builders, word/line joins, key/value rows, bullet lists, plain-text serialization.
 - `minekot-adv-minimessage`: `minimessage-templates`, `minimessage-validation`; string/component placeholders, parse Result, tag allowlists, legacy-color rejection.
 - `minekot-adv-json`: `adventure-json`; component JSON Result helpers and list round trips.
