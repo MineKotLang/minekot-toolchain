@@ -4,12 +4,15 @@ import dev.detekt.api.Config
 import dev.detekt.api.Entity
 import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
+import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.*
 
 /**
  * Flags obvious unsafe Result handling.
  */
+@AutoCorrectable(since = "2.0.0")
 class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
+    private val edits: MineKotTextEdits = MineKotTextEdits()
     private val issue: Issue = Issue(
         id = "ResultHandling",
         severity = Severity.Style,
@@ -18,6 +21,14 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
     )
 
     override val ruleName: RuleName get() = RuleName(issue.id)
+
+    override fun preVisit(root: KtFile) {
+        edits.clear()
+    }
+
+    override fun postVisit(root: KtFile) {
+        edits.applyTo(root, autoCorrect)
+    }
 
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
@@ -28,10 +39,15 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
                 enabled = expression.isKnownResultAccess(),
             )
 
-            "runCatching" -> if (expression.isIgnoredRunCatching()) {
+            "runCatching" -> if (expression.isIgnoredRunCatching() && !expression.isInsideMineKotFormatterControl()) {
                 reportFinding(
                     expression,
                     "Handle runCatching Result with onSuccess, onFailure, getOrElse, or getOrNull.",
+                )
+                edits.replace(
+                    expression.textRange.endOffset,
+                    expression.textRange.endOffset,
+                    ".getOrNull()",
                 )
             }
         }
@@ -78,12 +94,20 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
             return false
         }
         return when (val container = parent) {
-            is KtFunctionLiteral -> true
+            is KtFunctionLiteral -> !container.hasUnitReturningOwner()
             is KtIfExpression -> container.isResultConsumed()
             is KtTryExpression -> container.isResultConsumed()
             is KtWhenEntry -> (container.parent as? KtWhenExpression)?.isResultConsumed() == true
             else -> false
         }
+    }
+
+    private fun KtFunctionLiteral.hasUnitReturningOwner(): Boolean {
+        val lambda = parent as? KtLambdaExpression ?: return false
+        val call = generateSequence(lambda.parent) { element -> element.parent }
+            .filterIsInstance<KtCallExpression>()
+            .firstOrNull() ?: return false
+        return call.calleeExpression?.text in unitLambdaCalls
     }
 
     private fun reportFinding(
@@ -111,6 +135,14 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
             "Result.failure",
             "kotlin.Result.success",
             "kotlin.Result.failure",
+        )
+        private val unitLambdaCalls: Set<String> = setOf(
+            "also",
+            "apply",
+            "forEach",
+            "forEachIndexed",
+            "launch",
+            "onEach",
         )
     }
 }

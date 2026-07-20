@@ -72,6 +72,11 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
     val atomic: VersionedFeatureBlock = objects.versionedFeatureBlock(true, "0.33.0")
 
     /**
+     * Code generation and KSP helpers.
+     */
+    val codegen: FeatureBlock = objects.featureBlock(false)
+
+    /**
      * Test dependencies and helpers.
      */
     val testing: FeatureBlock = objects.featureBlock(true)
@@ -154,6 +159,13 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
      */
     fun atomic(action: Action<in VersionedFeatureBlock>) {
         action.execute(atomic)
+    }
+
+    /**
+     * Configures code generation and KSP helpers.
+     */
+    fun codegen(action: Action<in FeatureBlock>) {
+        action.execute(codegen)
     }
 
     /**
@@ -326,6 +338,18 @@ abstract class LintFeatureBlock @Inject constructor(objects: ObjectFactory) : Fe
      * Optional Detekt config file.
      */
     val configFile: RegularFileProperty = objects.fileProperty()
+
+    /** Optional versioned assisted-fix request document. */
+    val assistRequestFile: RegularFileProperty = objects.fileProperty()
+
+    /** Assisted-fix preview report directory. */
+    val assistReportDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /** Checked-in semantic style-guide review document. */
+    val semanticReviewFile: RegularFileProperty = objects.fileProperty()
+
+    /** Maximum accepted semantic-review age in days. */
+    val semanticReviewMaxAgeDays: Property<Int> = objects.property(Int::class.java)
 }
 
 private fun ObjectFactory.featureBlock(enabled: Boolean): FeatureBlock =
@@ -372,4 +396,5 @@ private fun ObjectFactory.lintFeatureBlock(enabled: Boolean): LintFeatureBlock =
         this.enabled.convention(enabled)
         autoCorrect.convention(false)
         buildUponDefaultConfig.convention(false)
+        semanticReviewMaxAgeDays.convention(30)
     }

@@ -23,14 +23,28 @@ abstract class VerifyMineKotCodestyleTask : DefaultTask() {
         val violations = buildList {
             root.walkTopDown()
                 .onEnter { directory -> directory.name !in ignoredDirectories }
-                .filter { file -> file.isFile && file.extension in kotlinExtensions }
+                .filter { file -> file.isFile && file.extension in sourceExtensions }
                 .forEach { file -> addAll(file.sourceFileViolations(root)) }
+            root.walkTopDown()
+                .onEnter { directory -> directory.name !in ignoredDirectories }
+                .filter { file -> file.isFile && file.extension.equals(markdownExtension, ignoreCase = true) }
+                .forEach { file -> addAll(MineKotMarkdownVerifier.violations(file, root)) }
             root.walkTopDown()
                 .onEnter { directory -> directory.name !in ignoredDirectories }
                 .filter { file -> file.isFile && file.extension in forbiddenGroovyExtensions }
                 .forEach { file ->
                     val relativePath = file.relativeTo(root).invariantSeparatorsPath
                     add("${relativePath}: Groovy is forbidden; use Kotlin instead")
+                }
+            root.walkTopDown()
+                .onEnter { directory -> directory.name !in ignoredDirectories }
+                .filter { file ->
+                    file.isFile && file.extension.equals("xml", ignoreCase = true) &&
+                            file.nameWithoutExtension.contains("baseline", ignoreCase = true)
+                }
+                .forEach { file ->
+                    val relativePath = file.relativeTo(root).invariantSeparatorsPath
+                    add("${relativePath}: Detekt baseline artifacts are forbidden")
                 }
             addAll(root.gradlePropertyViolations())
         }
@@ -83,12 +97,14 @@ abstract class VerifyMineKotCodestyleTask : DefaultTask() {
 
     private companion object {
         private val utf8Bom: ByteArray = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
-        private val kotlinExtensions: Set<String> = setOf("kt", "kts")
+        private const val markdownExtension: String = "md"
+        private val sourceExtensions: Set<String> = setOf("kt", "kts", markdownExtension)
         private val ignoredDirectories: Set<String> = setOf(".git", ".gradle", ".idea", "build", "out")
         private val forbiddenGroovyExtensions: Set<String> = setOf("gradle", "groovy")
         private val requiredGradleProperties: Map<String, String> = mapOf(
             "org.gradle.caching" to "true",
             "org.gradle.parallel" to "true",
+            "org.gradle.configureondemand" to "true",
         )
     }
 }

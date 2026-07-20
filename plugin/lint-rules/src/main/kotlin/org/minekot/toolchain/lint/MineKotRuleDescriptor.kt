@@ -91,6 +91,14 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         factory = ::KotlinxPreferenceRule,
     ),
     MineKotRuleDescriptor(
+        id = "ResolvedApiPreference",
+        defaultActive = true,
+        severity = "Style",
+        falsePositiveRisk = "low",
+        codestyleSection = "5.1 Library preference, 5.2 Kotlinx mandate, and 6.3 Concurrency",
+        factory = ::ResolvedApiPreferenceRule,
+    ),
+    MineKotRuleDescriptor(
         id = "TrailingComma",
         defaultActive = true,
         severity = "Style",
@@ -99,12 +107,12 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
         factory = ::TrailingCommaRule,
     ),
     MineKotRuleDescriptor(
-        id = "ParameterWrapping",
+        id = "LineWrapping",
         defaultActive = true,
         severity = "Style",
         falsePositiveRisk = "low",
-        codestyleSection = "4.5 Parameter wrapping",
-        factory = ::ParameterWrappingRule,
+        codestyleSection = "4.1 Column limit and 4.3 Indentation",
+        factory = ::LineWrappingRule,
     ),
     MineKotRuleDescriptor(
         id = "ForEachPreference",
@@ -148,7 +156,7 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
     ),
     MineKotRuleDescriptor(
         id = "ExplicitScopeInNestedScope",
-        defaultActive = false,
+        defaultActive = true,
         severity = "Style",
         falsePositiveRisk = "medium",
         codestyleSection = "6.2 Explicit scope resolution",

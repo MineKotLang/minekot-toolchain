@@ -215,6 +215,11 @@ class MineKotRulesTest {
             source = "fun run() { logger.info(miniMessage.deserialize(\"<green>Started</green>\")) }",
         ),
         RuleCase(
+            name = "flags raw MiniMessage text passed directly to a logger",
+            expectedFindings = 1,
+            source = "fun run() { logger.info(\"<green>MineKot started</green>\") }",
+        ),
+        RuleCase(
             name = "accepts developer exception messages",
             expectedFindings = 0,
             source = "fun requireValue(): Nothing = error(\"Missing generated entity value\")",
@@ -243,8 +248,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "accepts Gradle build output configuration and concatenation",
-            expectedFindings = 0,
+            name = "flags Gradle user-facing output not routed through MiniMessage",
+            expectedFindings = 3,
             filename = "build.gradle.kts",
             source =
                 """
@@ -341,8 +346,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "requires private and internal method docs but ignores overrides and locals",
-            expectedFindings = 3,
+            name = "requires private internal and override method docs but ignores locals",
+            expectedFindings = 4,
             source =
                 """
                 private class PrivateService {
@@ -374,8 +379,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "ignores inherited complicated properties",
-            expectedFindings = 0,
+            name = "requires docs for inherited complicated properties",
+            expectedFindings = 1,
             source =
                 """
                 /** Parent contract. */
@@ -384,7 +389,33 @@ class MineKotRulesTest {
                 class Child : Parent { override val names: List<String> = emptyList() }
                 """,
         ),
+        RuleCase(
+            name = "requires docs for inferred complicated properties",
+            expectedFindings = 2,
+            source =
+                """
+                private val names = emptyList<String>()
+                internal val lookup = mutableMapOf<String, Int>()
+                private val count = 0
+                """,
+        ),
     )
+
+    @Test
+    fun `missing kdoc is report only`() {
+        val source =
+            """
+            class Service {
+                fun run(name: String): String = name
+                val values: List<String> = emptyList()
+            }
+            """.trimIndent()
+
+        val result = MissingKDocRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+
+        assertEquals(3, result.findings.size)
+        assertEquals(source, result.correctedSource)
+    }
 
     @TestFactory
     fun `coroutine preference matrix`(): List<DynamicTest> = ruleCases(
@@ -438,6 +469,19 @@ class MineKotRulesTest {
                 """
                 fun start() {
                     server.scheduler.runTask(plugin, Runnable { scope.launch { engine.start() } })
+                }
+                """,
+        ),
+        RuleCase(
+            name = "accepts native scheduler implementation behind platform contract",
+            expectedFindings = 0,
+            source =
+                """
+                interface Platform { fun scheduleDelayedTask() }
+                class PaperPlatform : Platform {
+                    override fun scheduleDelayedTask() {
+                        scheduler.runTaskLater(plugin, action, 20)
+                    }
                 }
                 """,
         ),
@@ -639,6 +683,16 @@ class MineKotRulesTest {
     fun `trailing comma matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { TrailingCommaRule(Config.empty) },
         RuleCase(
+            name = "accepts same-line index after multiline receiver",
+            expectedFindings = 0,
+            source =
+                """
+                fun value(root: Map<String, String>): String? =
+                    root
+                        ["version"]
+                """,
+        ),
+        RuleCase(
             name = "flags missing commas in multiline declarations calls and types",
             expectedFindings = 3,
             source =
@@ -676,6 +730,15 @@ class MineKotRulesTest {
             name = "accepts single line lists without trailing commas",
             expectedFindings = 0,
             source = "fun sum(first: Int, second: Int): Int = listOf(first, second).sum()",
+        ),
+        RuleCase(
+            name = "accepts single line destructuring with a wrapped initializer",
+            expectedFindings = 0,
+            source =
+                """
+                val (first, second) = values
+                    ?: error("Missing values")
+                """,
         ),
         RuleCase(
             name = "flags multiline type parameters destructuring and indices",
@@ -812,64 +875,6 @@ class MineKotRulesTest {
     )
 
     @TestFactory
-    fun `parameter wrapping matrix`(): List<DynamicTest> = ruleCases(
-        ruleFactory = { ParameterWrappingRule(Config.empty) },
-        RuleCase(
-            name = "flags multiple items on one line in a multiline declaration",
-            expectedFindings = 1,
-            source =
-                """
-                fun sum(
-                    first: Int, second: Int,
-                ): Int = first + second
-                """,
-        ),
-        RuleCase(
-            name = "flags a closing delimiter on the last item line",
-            expectedFindings = 1,
-            source =
-                """
-                fun sum(
-                    first: Int,
-                    second: Int,): Int = first + second
-                """,
-        ),
-        RuleCase(
-            name = "accepts fully wrapped declaration and call lists",
-            expectedFindings = 0,
-            source =
-                """
-                fun sum(
-                    first: Int,
-                    second: Int,
-                ): Int = listOf(
-                    first,
-                    second,
-                ).sum()
-                """,
-        ),
-        RuleCase(
-            name = "accepts single line declaration and call lists",
-            expectedFindings = 0,
-            source = "fun sum(first: Int, second: Int): Int = listOf(first, second).sum()",
-        ),
-        RuleCase(
-            name = "accepts single item declaration and call lists",
-            expectedFindings = 0,
-            source =
-                """
-                override fun process(resolver: Resolver): List<KSAnnotated> = listOf(resolver)
-                """,
-        ),
-        RuleCase(
-            name = "accepts compact Gradle system property calls",
-            expectedFindings = 0,
-            filename = "build.gradle.kts",
-            source = "systemProperty(\"minekot.rootDir\", rootProject.projectDir.absolutePath)",
-        ),
-    )
-
-    @TestFactory
     fun `for each preference matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { ForEachPreferenceRule(Config.empty) },
         RuleCase(
@@ -943,6 +948,7 @@ class MineKotRulesTest {
                 """
                 implementation("com.example:library:1.0.0")
                 tasks.register("generateDocumentation")
+                tasks.register("prepareServerRun")
                 tasks.withType<Test>().configureEach { useJUnitPlatform() }
                 maven("https://repo.example.com")
                 """,
@@ -989,10 +995,22 @@ class MineKotRulesTest {
             source = "tasks.getByName(\"test\")",
         ),
         RuleCase(
+            name = "flags camel case task names without an action verb",
+            expectedFindings = 1,
+            filename = "build.gradle.kts",
+            source = "tasks.register(\"documentationGenerator\")",
+        ),
+        RuleCase(
             name = "flags untyped extension access",
             expectedFindings = 1,
             filename = "build.gradle.kts",
             source = "the<JavaPluginExtension>()",
+        ),
+        RuleCase(
+            name = "flags Java class based extension access",
+            expectedFindings = 1,
+            filename = "build.gradle.kts",
+            source = "extensions.getByType(JavaPluginExtension::class.java)",
         ),
         RuleCase(
             name = "flags invalid extension names",
@@ -1047,8 +1065,8 @@ class MineKotRulesTest {
     fun `import policy matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { ImportPolicyRule(Config.empty) },
         RuleCase(
-            name = "flags imports outside the required group order",
-            expectedFindings = 1,
+            name = "accepts imports in any order",
+            expectedFindings = 0,
             source =
                 """
                 import kotlin.io.path.name
@@ -1101,6 +1119,16 @@ class MineKotRulesTest {
                 import java.util.UUID
 
                 fun run() = Unit
+                """,
+        ),
+        RuleCase(
+            name = "does not treat java util subpackages as on demand",
+            expectedFindings = 0,
+            source =
+                """
+                import java.util.concurrent.CompletableFuture
+
+                fun run(): CompletableFuture<Unit> = CompletableFuture.completedFuture(Unit)
                 """,
         ),
         RuleCase(
@@ -1282,28 +1310,7 @@ class MineKotRulesTest {
     }
 
     @Test
-    fun `parameter wrapping auto correction fixes simple lists and is idempotent`() {
-        val source =
-            """
-            fun sum(
-                first: Int, second: Int,
-            ): Int = listOf(
-                first, second,
-            ).sum()
-            """.trimIndent()
-        val firstPass = ParameterWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
-        val secondPass = ParameterWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
-
-        assertEquals(2, firstPass.findings.size)
-        assertTrue(firstPass.correctedSource.contains("fun sum(\n    first: Int,\n    second: Int,\n)"))
-        assertTrue(firstPass.correctedSource.contains("listOf(\n    first,\n    second,\n)"))
-        assertEquals(0, TrailingCommaRule(Config.empty).lint(firstPass.correctedSource).size)
-        assertEquals(0, secondPass.findings.size)
-        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
-    }
-
-    @Test
-    fun `import ordering auto correction is complete and idempotent`() {
+    fun `import ordering is not enforced`() {
         val source =
             """
             import com.google.devtools.ksp.processing.*
@@ -1319,13 +1326,8 @@ class MineKotRulesTest {
         val firstPass = ImportPolicyRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
         val secondPass = ImportPolicyRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
 
-        assertEquals(1, firstPass.findings.size)
-        assertTrue(
-            firstPass.correctedSource.indexOf("import org.minekot.codegen.ksp.*") <
-                firstPass.correctedSource.indexOf(
-                    "import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy",
-                ),
-        )
+        assertEquals(0, firstPass.findings.size)
+        assertEquals(source, firstPass.correctedSource)
         assertEquals(0, secondPass.findings.size)
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)
     }
@@ -1406,6 +1408,177 @@ class MineKotRulesTest {
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)
     }
 
+    @Test
+    fun `Kotlinx path auto correction updates calls and imports idempotently`() {
+        val source =
+            """
+            import java.nio.file.Files
+            import java.nio.file.Path
+
+            fun inspect(path: Path): Boolean {
+                Files.newInputStream(path)
+                Files.newOutputStream(path)
+                Files.deleteIfExists(path)
+                return Files.exists(path)
+            }
+            """.trimIndent()
+        val firstPass = KotlinxPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+        val secondPass = KotlinxPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
+
+        assertEquals(1, firstPass.findings.size)
+        assertTrue(!firstPass.correctedSource.contains("java.nio.file.Files"))
+        assertTrue(firstPass.correctedSource.contains("path.inputStream()"))
+        assertTrue(firstPass.correctedSource.contains("path.outputStream()"))
+        assertTrue(firstPass.correctedSource.contains("path.deleteIfExists()"))
+        assertTrue(firstPass.correctedSource.contains("path.exists()"))
+        assertEquals(0, secondPass.findings.size)
+        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+    }
+
+    @Test
+    fun `Kotlinx path auto correction preserves unsupported overload imports`() {
+        val source =
+            """
+            import java.nio.file.Files
+            import java.nio.file.Path
+
+            fun inspect(path: Path): Unit {
+                Files.copy(path, path)
+                Files.exists(path)
+            }
+            """.trimIndent()
+        val result = KotlinxPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+
+        assertTrue(result.correctedSource.contains("import java.nio.file.Files"))
+        assertTrue(result.correctedSource.contains("Files.copy(path, path)"))
+        assertTrue(result.correctedSource.contains("path.exists()"))
+    }
+
+    @Test
+    fun `ignored Result auto correction is complete and idempotent`() {
+        val source = "fun run(): Unit { runCatching { println(\"work\") } }"
+        val firstPass = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+        val secondPass = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
+
+        assertEquals(1, firstPass.findings.size)
+        assertEquals("fun run(): Unit { runCatching { println(\"work\") }.getOrNull() }", firstPass.correctedSource)
+        assertEquals(0, secondPass.findings.size)
+        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+    }
+
+    @Test
+    fun `Result handling recognizes discarded Unit lambda results`() {
+        val source = "fun run(values: List<Int>): Unit { values.forEach { runCatching { println(it) } } }"
+        val result = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+
+        assertEquals(1, result.findings.size)
+        assertTrue(result.correctedSource.contains("runCatching { println(it) }.getOrNull()"))
+    }
+
+    @Test
+    fun `forEach auto correction preserves body and rejects mutation`() {
+        val source =
+            """
+            fun send(players: List<String>): Unit {
+                for (player in players) {
+                    println(player)
+                }
+            }
+            """.trimIndent()
+        val firstPass = ForEachPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+        val secondPass = ForEachPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
+
+        assertEquals(1, firstPass.findings.size)
+        assertTrue(firstPass.correctedSource.contains("players.forEach { player ->"))
+        assertEquals(0, secondPass.findings.size)
+        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+        val mutating = "fun trim(values: MutableList<Int>) { for (value in values) { values.remove(value) } }"
+        assertEquals(0, ForEachPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(mutating).findings.size)
+        val indexedMutation = "fun trim(values: MutableList<Int>) { for (value in values) { values[0] = value } }"
+        assertEquals(0, ForEachPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(indexedMutation).findings.size)
+    }
+
+    @Test
+    fun `explicit receiver auto correction requires one valid owner`() {
+        val source =
+            """
+            class Engine {
+                val name: String = "MineKot"
+
+                fun run(): Unit {
+                    listOf(1).forEach { println(name) }
+                }
+            }
+            """.trimIndent()
+        val firstPass = ExplicitScopeInNestedScopeRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+        val secondPass = ExplicitScopeInNestedScopeRule(mineKotAutoCorrectConfig)
+            .lintAndCorrect(firstPass.correctedSource)
+
+        assertEquals(1, firstPass.findings.size)
+        assertTrue(firstPass.correctedSource.contains("println(this@Engine.name)"))
+        assertEquals(0, secondPass.findings.size)
+        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+    }
+
+    @Test
+    fun `line wrapping corrects long calls and preserves string literals`() {
+        val source =
+            "fun run(): Unit = consume(firstArgument, secondArgument, thirdArgument, fourthArgument, fifthArgument, sixthArgument, seventhArgument)"
+        val firstPass = LineWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+        val secondPass = LineWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
+
+        assertEquals(1, firstPass.findings.size)
+        assertTrue(firstPass.correctedSource.contains("consume(\n"))
+        assertTrue(firstPass.correctedSource.contains("        firstArgument,"))
+        assertEquals(0, secondPass.findings.size)
+        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+        val longLiteral = "fun text(): String = \"${"x".repeat(130)}\""
+        assertEquals(0, LineWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(longLiteral).findings.size)
+    }
+
+    @Test
+    fun `line wrapping corrects getters casts and when entries idempotently`() {
+        val sources = listOf(
+            "val exceptionallyLongDescriptivePropertyNameForWrapping: String get() = firstComponent + secondComponent + thirdComponent + fourthComponent",
+            "fun cast(value: Any): ExtremelyLongDescriptiveDomainType = value as ExtremelyLongDescriptiveDomainTypeWithEnoughCharactersToRequireWrapping",
+            "fun select(value: Int): String = when (value) { firstExtremelyLongCondition, secondExtremelyLongCondition, thirdExtremelyLongCondition -> \"match\"; else -> \"other\" }",
+        )
+
+        sources.forEach { source ->
+            val firstPass = LineWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
+            val secondPass = LineWrappingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
+
+            assertEquals(1, firstPass.findings.size, source)
+            assertTrue(firstPass.correctedSource.contains('\n'), firstPass.correctedSource)
+            assertEquals(0, secondPass.findings.size, secondPass.correctedSource)
+            assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+        }
+    }
+
+    @Test
+    fun `new automatic corrections preserve formatter regions comments aliases and partial syntax`() {
+        val formatterControlled =
+            "// @formatter:off\nfun run(): Unit { runCatching { println(\"work\") } }\n// @formatter:on"
+        val commentedCall =
+            "import java.nio.file.Files\nimport java.nio.file.Path\nfun inspect(path: Path) = Files.exists(/* preserve */ path)"
+        val aliasedExtension =
+            "import java.nio.file.Files\nimport java.nio.file.Path\nimport kotlin.io.path.exists as pathExists\nfun inspect(path: Path) = Files.exists(path)"
+        val partial = "fun run(): Unit { runCatching { println(\"work\") }"
+
+        assertEquals(
+            formatterControlled,
+            ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(formatterControlled).correctedSource,
+        )
+        assertEquals(
+            commentedCall,
+            KotlinxPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(commentedCall).correctedSource,
+        )
+        val correctedAlias = KotlinxPreferenceRule(mineKotAutoCorrectConfig).lintAndCorrect(aliasedExtension).correctedSource
+        assertTrue(correctedAlias.contains("import kotlin.io.path.exists\n"), correctedAlias)
+        assertTrue(correctedAlias.contains("import kotlin.io.path.exists as pathExists"), correctedAlias)
+        assertEquals(partial, ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(partial).correctedSource)
+    }
+
     private fun ruleCases(
         ruleFactory: () -> Rule,
         vararg cases: RuleCase,
@@ -1451,7 +1624,7 @@ class MineKotRulesTest {
             ),
             "MiniMessageText" to ProviderRuleCase(
                 "fun run() { println(\"Hello\") }",
-                "fun text(): String = \"<green>Hello</green>\"",
+                "fun run() { logger.info(mineKotMiniMessage(\"<green>Hello</green>\")) }",
             ),
             "MissingKDoc" to ProviderRuleCase(
                 "fun run(): Unit = Unit",
@@ -1478,10 +1651,9 @@ class MineKotRulesTest {
                 "fun run() = listOf(\n    1,\n    2\n)",
                 "fun run() = listOf(\n    1,\n    2,\n)",
             ),
-            "ParameterWrapping" to ProviderRuleCase(
-                "fun run(\n    first: Int, second: Int,\n) = Unit",
-                "systemProperty(\"minekot.rootDir\", rootProject.projectDir.absolutePath)",
-                filename = "build.gradle.kts",
+            "LineWrapping" to ProviderRuleCase(
+                "fun run(): Unit = consume(firstArgument, secondArgument, thirdArgument, fourthArgument, fifthArgument, sixthArgument, seventhArgument)",
+                "fun run(): Unit = consume(firstArgument, secondArgument)",
             ),
             "ForEachPreference" to ProviderRuleCase(
                 "fun run(values: List<Int>) { for (value in values) { println(value) } }",
@@ -1493,8 +1665,8 @@ class MineKotRulesTest {
                 "build.gradle.kts",
             ),
             "ImportPolicy" to ProviderRuleCase(
-                "import kotlin.io.path.name\nimport java.io.File\nfun run() = Unit",
-                "import java.io.File\nimport kotlin.io.path.name\nfun run() = Unit",
+                "import org.example.Outer.Nested\nfun run() = Unit",
+                "import java.util.concurrent.CompletableFuture\nfun run() = Unit",
             ),
             "SourceFilePolicy" to ProviderRuleCase(
                 "// @formatter:off\nfun run() = Unit",

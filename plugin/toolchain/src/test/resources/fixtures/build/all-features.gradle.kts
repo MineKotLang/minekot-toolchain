@@ -15,6 +15,9 @@ minekotToolchain {
     atomic {
         libraryVersion.set("4.4.4-minekot-test")
     }
+    codegen {
+        enabled.set(true)
+    }
     adventure {
         libraryVersion.set("5.5.5-minekot-test")
     }

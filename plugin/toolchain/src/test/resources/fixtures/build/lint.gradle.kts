@@ -10,5 +10,8 @@ tasks.register("printMineKotLint") {
         project.configurations.getByName("detektPlugins").dependencies.forEach {
             println("${it.group}:${it.name}:${it.version}")
         }
+        project.configurations.getByName("detektPlugins").files.forEach {
+            println("detektPluginFile=${it.name}")
+        }
     }
 }

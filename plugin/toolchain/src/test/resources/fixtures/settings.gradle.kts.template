@@ -1,8 +1,8 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
         maven("https://maven.minekot.org/releases")
         maven("https://maven.minekot.org/snapshots")
     }
@@ -10,9 +10,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.__REPOSITORIES_MODE__)
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
         maven("https://maven.minekot.org/releases")
         maven("https://maven.minekot.org/snapshots")
     }

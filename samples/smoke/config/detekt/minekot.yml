@@ -21,9 +21,6 @@ minekot:
   TrailingComma:
     active: true
     autoCorrect: true
-  ParameterWrapping:
-    active: true
-    autoCorrect: true
   ForEachPreference:
     active: true
   GradleDslConventions:

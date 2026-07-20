@@ -2,6 +2,7 @@ package org.minekot.toolchain
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import org.gradle.api.Action
 import org.gradle.api.GradleException
@@ -12,12 +13,14 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.JarURLConnection
 import java.net.URI
 
 /**
@@ -29,6 +32,9 @@ class MineKotToolchainPlugin : Plugin<Project> {
             "minekotToolchain",
             MineKotToolchainExtension::class.java,
         )
+        extension.lint.assistRequestFile.convention(project.layout.projectDirectory.file("minekot-fixes.json"))
+        extension.lint.assistReportDirectory.convention(project.layout.buildDirectory.dir("reports/minekot"))
+        extension.lint.semanticReviewFile.convention(project.rootProject.layout.projectDirectory.file("minekot-review.json"))
         configureConventions(project, extension)
 
         project.pluginManager.apply("java-library")
@@ -43,8 +49,21 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
         project.tasks.withType(Test::class.java).configureEach {
             it.useJUnitPlatform()
+            it.maxParallelForks = Runtime.getRuntime().availableProcessors()
+        }
+        project.configurations.configureEach {
+            it.resolutionStrategy.cacheDynamicVersionsFor(10, "minutes")
+            it.resolutionStrategy.cacheChangingModulesFor(0, "seconds")
         }
         project.pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
+        val stagedCompilerClasspath = project.configurations.create("mineKotStagedCompiler") {
+            it.isCanBeConsumed = false
+            it.isCanBeResolved = true
+        }
+        project.dependencies.add(
+            stagedCompilerClasspath.name,
+            "org.jetbrains.kotlin:kotlin-compiler-embeddable:${KotlinVersion.CURRENT}",
+        )
 
         val writeMineKotCodestyle =
             project.tasks.register("writeMineKotCodestyle", WriteMineKotCodestyleTask::class.java) {
@@ -68,8 +87,75 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 it.description = "Verifies raw source files and repository-level MineKot codestyle policy."
                 it.projectDirectory.set(project.layout.projectDirectory)
             }
+        project.tasks.register("mineKotReviewPreview", MineKotReviewPreviewTask::class.java) {
+            it.group = "minekot"
+            it.description = "Writes a source-fingerprinted MineKot semantic-review template."
+            it.projectDirectory.set(project.rootProject.layout.projectDirectory)
+            it.reportDirectory.set(extension.lint.assistReportDirectory)
+        }
+        val verifyMineKotSemanticReview =
+            project.tasks.register("verifyMineKotSemanticReview", VerifyMineKotSemanticReviewTask::class.java) {
+                it.group = "verification"
+                it.description = "Verifies current MineKot semantic style-guide confirmation."
+                it.projectDirectory.set(project.rootProject.layout.projectDirectory)
+                it.reviewFile.set(extension.lint.semanticReviewFile)
+                it.maximumAgeDays.set(extension.lint.semanticReviewMaxAgeDays)
+            }
         project.tasks.named("check") {
-            it.dependsOn(verifyMineKotCodestyle)
+            it.dependsOn(verifyMineKotCodestyle, verifyMineKotSemanticReview)
+        }
+        project.tasks.register("mineKotAssistPreview", MineKotAssistPreviewTask::class.java) {
+            it.group = "minekot"
+            it.description = "Previews fingerprinted MineKot assisted fixes without changing sources."
+            it.projectDirectory.set(project.layout.projectDirectory)
+            it.requestFile.set(extension.lint.assistRequestFile)
+            it.reportDirectory.set(extension.lint.assistReportDirectory)
+        }
+        val assistStage = project.tasks.register("mineKotAssistStage", MineKotAssistStageTask::class.java) {
+            it.group = "minekot"
+            it.description = "Stages one explicitly confirmed MineKot assisted-fix plan."
+            it.projectDirectory.set(project.layout.projectDirectory)
+            it.requestFile.set(extension.lint.assistRequestFile)
+            it.reportDirectory.set(extension.lint.assistReportDirectory)
+        }
+        val assistSourceTree = project.fileTree(
+            extension.lint.assistReportDirectory.map { directory ->
+                directory.dir("staged")
+            },
+        ) {
+            it.include("src/**/*.kt", "**/src/**/*.kt")
+        }
+        val assistCompilation = project.tasks.register("mineKotAssistCompileStaged", JavaExec::class.java) { task ->
+            task.group = "verification"
+            task.description = "Compiles confirmed staged assisted fixes before publication."
+            task.dependsOn(assistStage)
+            task.classpath(stagedCompilerClasspath)
+            task.mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
+            val destination = project.layout.buildDirectory.dir("tmp/minekot/assist-classes")
+            task.outputs.dir(destination)
+            task.doFirst {
+                destination.get().asFile.mkdirs()
+                task.setArgs(
+                    stagedCompilerArguments(
+                        assistSourceTree.files,
+                        project.configurations.getByName("testCompileClasspath").asPath,
+                        destination.get().asFile.absolutePath,
+                        extension.build.javaVersion.get(),
+                    ),
+                )
+            }
+        }
+        project.tasks.register("mineKotAssistApply", MineKotAssistApplyTask::class.java) {
+            it.group = "minekot"
+            it.description = "Applies one explicitly confirmed MineKot assisted-fix plan."
+            it.dependsOn(assistCompilation)
+            it.projectDirectory.set(project.layout.projectDirectory)
+            it.requestFile.set(extension.lint.assistRequestFile)
+            it.reportDirectory.set(extension.lint.assistReportDirectory)
+        }
+        project.tasks.register("mineKotFormat") {
+            it.group = "minekot"
+            it.description = "Applies deterministic MineKot corrections and verifies second-pass idempotence."
         }
 
         project.tasks.withType(ProcessResources::class.java).configureEach {
@@ -183,6 +269,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.io.configureVersionedConventions(project, "io", true, "0.9.1")
         extension.coroutines.configureVersionedConventions(project, "coroutines", true, "1.11.0")
         extension.atomic.configureVersionedConventions(project, "atomic", true, "0.33.0")
+        extension.codegen.enabled.gradlePropertyConvention(project, "minekotToolchain.codegen.enabled", false)
         extension.testing.enabled.gradlePropertyConvention(project, "minekotToolchain.testing.enabled", true)
         extension.adventure.configureVersionedConventions(project, "adventure", true, "5.2.0")
         extension.lint.enabled.gradlePropertyConvention(project, "minekotToolchain.lint.enabled", true)
@@ -323,16 +410,131 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
         project.tasks.withType(Detekt::class.java).configureEach {
             it.jvmTarget.set(javaVersion.toString())
+        }
+        project.tasks.named("detekt", Detekt::class.java) {
             it.source(project.buildFile)
         }
-        project.dependencies.add(
-            "detektPlugins",
-            minekotDependency(
-                extension.dependencyGroup.get(),
-                "minekot-toolchain-lint-rules",
-                extension.toolchainVersion.get(),
-            ),
-        )
+        project.tasks.withType(DetektCreateBaselineTask::class.java).configureEach {
+            it.enabled = false
+        }
+        project.dependencies.add("detektPlugins", project.files(detektProviderFiles()))
+        configureMineKotFormat(project)
+    }
+
+    private fun detektProviderFiles(): List<java.io.File> =
+        javaClass.classLoader.getResources(DETEKT_PROVIDER_SERVICE)
+            .toList()
+            .mapNotNull { resource ->
+                val connection = resource.openConnection() as? JarURLConnection ?: return@mapNotNull null
+                runCatching { java.io.File(connection.jarFileURL.toURI()) }.getOrNull()
+            }
+            .distinct()
+
+    private fun configureMineKotFormat(project: Project) {
+        val stagingDirectory = project.layout.buildDirectory.dir("tmp/minekot/format-sources")
+        val stage = project.tasks.register("mineKotFormatStage", MineKotFormatStageTask::class.java) {
+            it.group = "minekot"
+            it.description = "Stages Kotlin sources for transactional formatting."
+            it.projectDirectory.set(project.layout.projectDirectory)
+            it.stagingDirectory.set(stagingDirectory)
+        }
+        val sourceTree = project.fileTree(stagingDirectory) {
+            it.include("**/*.kt", "**/*.kts")
+        }
+        val compilableSourceTree = project.fileTree(stagingDirectory) {
+            it.include("src/**/*.kt", "**/src/**/*.kt")
+        }
+        val firstPass = project.tasks.register("mineKotFormatFirstPass", Detekt::class.java) {
+            it.group = "minekot"
+            it.description = "Applies first deterministic MineKot correction pass."
+            it.dependsOn(stage)
+            it.autoCorrect.set(true)
+            it.ignoreFailures.set(true)
+            it.source(sourceTree)
+            it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
+            it.outputs.upToDateWhen { false }
+            it.outputs.cacheIf { false }
+        }
+        val correctionPasses = (2..8).runningFold(firstPass) { previous, number ->
+            project.tasks.register(
+                if (number == 2) "mineKotFormatSecondPass" else "mineKotFormatConvergencePass${number}",
+                Detekt::class.java,
+            ) {
+                it.group = "minekot"
+                it.description = "Applies deterministic MineKot correction convergence pass ${number}."
+                it.dependsOn(previous)
+                it.autoCorrect.set(true)
+                it.ignoreFailures.set(true)
+                it.source(sourceTree)
+                it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
+                it.outputs.upToDateWhen { false }
+                it.outputs.cacheIf { false }
+            }
+        }
+        val convergedCorrections = correctionPasses.last()
+        val snapshot = project.tasks.register("mineKotFormatSnapshot", MineKotFormatSnapshotTask::class.java) {
+            it.group = "minekot"
+            it.description = "Captures MineKot source hashes after correction convergence."
+            it.dependsOn(convergedCorrections)
+            it.projectDirectory.set(stagingDirectory)
+            it.snapshotFile.set(project.layout.buildDirectory.file("tmp/minekot/format-converged.json"))
+            it.outputs.upToDateWhen { false }
+        }
+        val verificationPass = project.tasks.register("mineKotFormatVerificationPass", Detekt::class.java) {
+            it.group = "verification"
+            it.description = "Verifies MineKot corrections are clean and idempotent."
+            it.dependsOn(snapshot)
+            it.autoCorrect.set(true)
+            it.ignoreFailures.set(false)
+            it.source(sourceTree)
+            it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
+            it.outputs.upToDateWhen { false }
+            it.outputs.cacheIf { false }
+        }
+        val idempotence = project.tasks.register("mineKotFormatIdempotence", MineKotFormatIdempotenceTask::class.java) {
+            it.group = "verification"
+            it.description = "Requires byte-identical MineKot formatter verification pass."
+            it.dependsOn(verificationPass)
+            it.projectDirectory.set(stagingDirectory)
+            it.snapshotFile.set(project.layout.buildDirectory.file("tmp/minekot/format-converged.json"))
+        }
+        val stagedSourceVerification =
+            project.tasks.register("mineKotFormatVerifyStagedSources", VerifyMineKotCodestyleTask::class.java) {
+                it.group = "verification"
+                it.description = "Verifies raw codestyle policy against staged Kotlin sources."
+                it.dependsOn(idempotence)
+                it.projectDirectory.set(stagingDirectory)
+            }
+        val stagedCompilation = project.tasks.register("mineKotFormatCompileStaged", JavaExec::class.java) { task ->
+            task.group = "verification"
+            task.description = "Compiles staged production and test Kotlin sources before publication."
+            task.dependsOn(idempotence)
+            task.classpath(project.configurations.getByName("mineKotStagedCompiler"))
+            task.mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
+            val destination = project.layout.buildDirectory.dir("tmp/minekot/format-classes")
+            task.outputs.dir(destination)
+            task.doFirst {
+                destination.get().asFile.mkdirs()
+                task.setArgs(
+                    stagedCompilerArguments(
+                        compilableSourceTree.files,
+                        project.configurations.getByName("testCompileClasspath").asPath,
+                        destination.get().asFile.absolutePath,
+                        project.extensions.getByType(MineKotToolchainExtension::class.java).build.javaVersion.get(),
+                    ),
+                )
+            }
+        }
+        val apply = project.tasks.register("mineKotFormatApply", MineKotFormatApplyTask::class.java) {
+            it.group = "minekot"
+            it.description = "Transactionally applies the validated staged formatting result."
+            it.dependsOn(stagedSourceVerification, stagedCompilation)
+            it.projectDirectory.set(project.layout.projectDirectory)
+            it.stagingDirectory.set(stagingDirectory)
+        }
+        project.tasks.named("mineKotFormat") {
+            it.dependsOn(apply)
+        }
     }
 
     private fun Project.addDependencies(configurationName: String, vararg notations: String) {
@@ -340,6 +542,21 @@ class MineKotToolchainPlugin : Plugin<Project> {
             dependencies.add(configurationName, notation)
         }
     }
+
+    private fun stagedCompilerArguments(
+        sourceFiles: Set<java.io.File>,
+        compilationClasspath: String,
+        destination: String,
+        javaVersion: Int,
+    ): List<String> =
+        listOf(
+            "-classpath",
+            compilationClasspath,
+            "-d",
+            destination,
+            "-jvm-target",
+            javaVersion.toString(),
+        ) + sourceFiles.map(java.io.File::getAbsolutePath).sorted()
 
     private fun minekotDependency(group: String, moduleName: String, version: String): String =
         "${group}:${moduleName}:${version}"
@@ -398,6 +615,11 @@ class MineKotToolchainPlugin : Plugin<Project> {
         ),
         DependencyFeatureDescriptor(
             configurationName = "implementation",
+            enabled = { extension.codegen.enabled.get() },
+            notations = { listOf(minekotDependency(dependencyGroup, "minekot-ksp-helpers", toolchainVersion)) },
+        ),
+        DependencyFeatureDescriptor(
+            configurationName = "implementation",
             enabled = { extension.adventure.enabled.get() },
             notations = {
                 adventureModules.map { moduleName ->
@@ -423,6 +645,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
     )
 
     private companion object {
+        private const val DETEKT_PROVIDER_SERVICE: String = "META-INF/services/dev.detekt.api.RuleSetProvider"
         private const val DEFAULT_RELEASES_URL = "https://maven.minekot.org/releases"
         private const val DEFAULT_SNAPSHOTS_URL = "https://maven.minekot.org/snapshots"
 

@@ -1,7 +1,10 @@
 package org.minekot.toolchain.lint
 
+import com.intellij.psi.PsiErrorElement
 import dev.detekt.api.modifiedText
+import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 
 /**
  * Collects deterministic source edits for an auto-correctable MineKot rule.
@@ -45,12 +48,17 @@ internal class MineKotTextEdits {
      *
      * @param file Visited Kotlin file.
      * @param enabled Whether the owning rule has auto-correction enabled.
+     * @param allowPartialSyntax Whether this byte-level edit is safe when PSI contains syntax errors.
      */
     fun applyTo(
         file: KtFile,
         enabled: Boolean,
+        allowPartialSyntax: Boolean = false,
     ) {
-        if (!enabled || edits.isEmpty() || file.modifiedText != null) {
+        if (
+            !enabled || edits.isEmpty() || file.modifiedText != null ||
+            !allowPartialSyntax && file.collectDescendantsOfType<PsiErrorElement>().isNotEmpty()
+        ) {
             return
         }
         val orderedEdits = edits.sortedByDescending { edit -> edit.startOffset }
@@ -72,3 +80,9 @@ private data class MineKotTextEdit(
     val endOffset: Int,
     val replacement: String,
 )
+
+/** Returns whether this element is inside an active IntelliJ formatter-off region. */
+internal fun KtElement.isInsideMineKotFormatterControl(): Boolean {
+    val prefix = containingKtFile.text.take(textRange.startOffset)
+    return prefix.lastIndexOf("@formatter:off") > prefix.lastIndexOf("@formatter:on")
+}

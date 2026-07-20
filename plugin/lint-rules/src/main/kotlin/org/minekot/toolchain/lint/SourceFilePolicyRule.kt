@@ -27,7 +27,7 @@ class SourceFilePolicyRule(config: Config) : Rule(config, "MineKot codestyle rul
     }
 
     override fun postVisit(root: KtFile) {
-        edits.applyTo(root, autoCorrect)
+        edits.applyTo(root, autoCorrect, allowPartialSyntax = true)
     }
 
     override fun visit(root: KtFile) {

@@ -1,11 +1,13 @@
 package org.minekot.toolchain
 
+import kotlinx.serialization.json.Json
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 
 class MineKotToolchainPluginTest {
     @Test
@@ -48,6 +50,7 @@ class MineKotToolchainPluginTest {
         assertTrue(result.output.contains("org.jetbrains.kotlinx:kotlinx-io-bytestring-jvm:2.2.2-minekot-test"))
         assertTrue(result.output.contains("org.jetbrains.kotlinx:kotlinx-coroutines-core:3.3.3-minekot-test"))
         assertTrue(result.output.contains("org.jetbrains.kotlinx:atomicfu-jvm:4.4.4-minekot-test"))
+        assertTrue(result.output.contains("org.minekot:minekot-ksp-helpers"))
         assertTrue(result.output.contains("net.kyori:adventure-api:5.5.5-minekot-test"))
         assertTrue(result.output.contains("net.kyori:adventure-text-minimessage:5.5.5-minekot-test"))
         assertTrue(result.output.contains("org.minekot:minekot-adv-minimessage"))
@@ -249,7 +252,18 @@ class MineKotToolchainPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotLint")?.outcome)
         assertTrue(result.output.contains("detekt=true"))
         assertTrue(result.output.contains("buildUponDefaultConfig=false"))
-        assertTrue(result.output.contains("org.minekot:minekot-toolchain-lint-rules"))
+        assertTrue(result.output.contains("detektPluginFile=minekot-toolchain-lint-rules"))
+    }
+
+    @Test
+    fun `plugin disables detekt baseline generation`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "lint.gradle.kts")
+
+        val result = runGradle(projectDirectory, "detektBaseline")
+
+        assertEquals(TaskOutcome.SKIPPED, result.task(":detektBaseline")?.outcome)
+        assertFalse(Files.exists(projectDirectory.resolve("detekt-baseline.xml")))
     }
 
     @Test
@@ -294,27 +308,32 @@ class MineKotToolchainPluginTest {
             "ResultHandling",
             "KotlinxPreference",
             "TrailingComma",
-            "ParameterWrapping",
+            "LineWrapping",
             "ForEachPreference",
             "GradleDslConventions",
             "ImportPolicy",
             "SourceFilePolicy",
             "CommentFormatting",
+            "ExplicitScopeInNestedScope",
+            "ResolvedApiPreference",
         )
 
-        assertEquals(activeMineKotRules + "ExplicitScopeInNestedScope", configuredMineKotRules)
+        assertEquals(activeMineKotRules, configuredMineKotRules)
         activeMineKotRules.forEach { ruleName ->
             assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true"))
         }
-        assertTrue(detektConfig.contains("    ExplicitScopeInNestedScope:\n        active: false"))
         val autoCorrectableMineKotRules = setOf(
             "StringTemplateBraces",
             "TrailingComma",
-            "ParameterWrapping",
             "GradleDslConventions",
             "ImportPolicy",
             "SourceFilePolicy",
             "CommentFormatting",
+            "ResultHandling",
+            "KotlinxPreference",
+            "ForEachPreference",
+            "ExplicitScopeInNestedScope",
+            "LineWrapping",
         )
         autoCorrectableMineKotRules.forEach { ruleName ->
             assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true\n        autoCorrect: true"))
@@ -415,6 +434,7 @@ class MineKotToolchainPluginTest {
             projectDirectory,
             "org.gradle.caching=true",
             "org.gradle.parallel=true",
+            "org.gradle.configureondemand=true",
         )
         val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
         Files.createDirectories(sourceFile.parent)
@@ -433,6 +453,7 @@ class MineKotToolchainPluginTest {
             projectDirectory,
             "org.gradle.caching=false",
             "org.gradle.parallel=false",
+            "org.gradle.configureondemand=false",
         )
         val sourceFile = projectDirectory.resolve("src/main/kotlin/Bad.kt")
         Files.createDirectories(sourceFile.parent)
@@ -447,6 +468,9 @@ class MineKotToolchainPluginTest {
         Files.createDirectories(groovyBuildFile.parent)
         groovyBuildFile.toFile().writeText("plugins {}\n")
         projectDirectory.resolve("legacy/Helper.groovy").toFile().writeText("class Helper {}\n")
+        val baselineFile = projectDirectory.resolve("config/detekt/MyBaseline.XML")
+        Files.createDirectories(baselineFile.parent)
+        baselineFile.toFile().writeText("<SmellBaseline/>\n")
 
         val result = runGradleAndFail(projectDirectory, "verifyMineKotCodestyle")
 
@@ -456,8 +480,329 @@ class MineKotToolchainPluginTest {
         assertTrue(result.output.contains("src/main/kotlin/NoFinalNewline.kt: end with exactly one newline"))
         assertTrue(result.output.contains("legacy/build.gradle: Groovy is forbidden; use Kotlin instead"))
         assertTrue(result.output.contains("legacy/Helper.groovy: Groovy is forbidden; use Kotlin instead"))
+        assertTrue(result.output.contains("config/detekt/MyBaseline.XML: Detekt baseline artifacts are forbidden"))
         assertTrue(result.output.contains("gradle.properties: set org.gradle.caching=true"))
         assertTrue(result.output.contains("gradle.properties: set org.gradle.parallel=true"))
+        assertTrue(result.output.contains("gradle.properties: set org.gradle.configureondemand=true"))
+    }
+
+    @Test
+    fun `codestyle verification validates deterministic Markdown rules`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        writeGradleProperties(
+            projectDirectory,
+            "org.gradle.caching=true",
+            "org.gradle.parallel=true",
+            "org.gradle.configureondemand=true",
+        )
+        projectDirectory.resolve("README.md").toFile().writeText(
+            "# BROKEN TITLE\nText wrapped\nacross lines.\n\n```\nvalue\n```\n\n[link](#missing)\n",
+        )
+
+        val result = runGradleAndFail(projectDirectory, "verifyMineKotCodestyle")
+
+        assertTrue(result.output.contains("README.md:1: headings must use sentence case"))
+        assertTrue(result.output.contains("paragraph text must not contain hard source wrapping"))
+        assertTrue(result.output.contains("fenced code blocks require a language identifier"))
+        assertTrue(result.output.contains("link text must describe its destination"))
+        assertTrue(result.output.contains("internal heading link #missing does not exist"))
+    }
+
+    @Test
+    fun `semantic review reports missing confirmation document`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+
+        val result = runGradleAndFail(projectDirectory, "verifyMineKotSemanticReview")
+
+        assertTrue(result.output.contains("Missing MineKot semantic review; run mineKotReviewPreview"))
+        assertFalse(result.output.contains("A problem was found with the configuration of task"))
+    }
+
+    @Test
+    fun `semantic review requires current fingerprint and complete confirmation`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        val source = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(source.parent)
+        source.toFile().writeText("val value: Int = 1\n")
+
+        runGradle(projectDirectory, "mineKotReviewPreview")
+        val previewFile = projectDirectory.resolve("build/reports/minekot/semantic-review.json")
+        val preview = assistJson.decodeFromString<MineKotSemanticReviewDocument>(previewFile.toFile().readText())
+        val confirmed = preview.copy(
+            reviewer = "MineKot reviewer",
+            reviewedAt = Instant.now().toString(),
+            checks = preview.checks.map { check -> check.copy(confirmed = true) },
+        )
+        projectDirectory.resolve("minekot-review.json").toFile().writeText(
+            assistJson.encodeToString(confirmed) + "\n",
+        )
+
+        val valid = runGradle(projectDirectory, "verifyMineKotSemanticReview")
+        assertEquals(TaskOutcome.SUCCESS, valid.task(":verifyMineKotSemanticReview")?.outcome)
+
+        source.toFile().appendText("val changed: Int = 2\n")
+        val stale = runGradleAndFail(projectDirectory, "verifyMineKotSemanticReview")
+        assertTrue(stale.output.contains("sourceFingerprint is stale"))
+    }
+
+    @Test
+    fun `assisted preview never mutates and confirmed apply is fingerprint gated`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        val originalSource = "fun answer(): Int = 42\n"
+        sourceFile.toFile().writeText(originalSource)
+
+        val discovery = runGradle(projectDirectory, "mineKotAssistPreview")
+        val reportFile = projectDirectory.resolve("build/reports/minekot/assisted-fixes.json")
+        val discoveryReport = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+        val candidate =
+            discoveryReport.candidates.single { it.action == "magic-number" && it.path.endsWith("Example.kt") }
+
+        assertEquals(TaskOutcome.SUCCESS, discovery.task(":mineKotAssistPreview")?.outcome)
+        assertEquals(originalSource, sourceFile.toFile().readText())
+
+        val requestedDocument = MineKotAssistRequestDocument(
+            requests = listOf(
+                MineKotAssistRequest(
+                    findingId = candidate.findingId,
+                    action = candidate.action,
+                    options = MineKotMagicNumberOptions(constantName = "ANSWER_VALUE"),
+                ),
+            ),
+        )
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(
+            assistJson.encodeToString(requestedDocument) + "\n",
+        )
+        runGradle(projectDirectory, "mineKotAssistPreview")
+        val requestedReport = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+        val confirmedDocument = requestedDocument.copy(
+            confirmation = MineKotAssistConfirmation(requestedReport.planId, confirmed = true),
+        )
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(
+            assistJson.encodeToString(confirmedDocument) + "\n",
+        )
+
+        val apply = runGradle(projectDirectory, "mineKotAssistApply")
+
+        assertEquals(TaskOutcome.SUCCESS, apply.task(":mineKotAssistApply")?.outcome)
+        assertTrue(sourceFile.toFile().readText().contains("private const val ANSWER_VALUE: Int = 42"))
+        assertTrue(sourceFile.toFile().readText().contains("fun answer(): Int = ANSWER_VALUE"))
+    }
+
+    @Test
+    fun `assisted apply rejects stale confirmation without source mutation`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        val originalSource = "fun answer(): Int = 42\n"
+        sourceFile.toFile().writeText(originalSource)
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(
+            assistJson.encodeToString(
+                MineKotAssistRequestDocument(
+                    confirmation = MineKotAssistConfirmation("stale-plan", confirmed = true),
+                ),
+            ) + "\n",
+        )
+
+        val result = runGradleAndFail(projectDirectory, "mineKotAssistApply")
+
+        assertTrue(result.output.contains("confirmation is missing or stale"))
+        assertEquals(originalSource, sourceFile.toFile().readText())
+    }
+
+    @Test
+    fun `magic number assisted extraction preserves numeric types and literal forms`() {
+        val cases = mapOf(
+            "Byte" to "fun accept(value: Byte): Unit = Unit\nfun use(): Unit = accept(42)\n",
+            "Short" to "fun accept(value: Short): Unit = Unit\nfun use(): Unit = accept(42)\n",
+            "Int" to "fun use(): Int = 4_200\n",
+            "Long" to "fun use(): Long = 42L\n",
+            "Float" to "fun use(): Float = 42.5F\n",
+            "Double" to "fun use(): Double = 42.5\n",
+            "Hex" to "fun use(): Int = 0x2A\n",
+            "Binary" to "fun use(): Int = 0b101010\n",
+        )
+
+        cases.forEach { (name, source) ->
+            val projectDirectory = Files.createTempDirectory("minekot-number-${name.lowercase()}")
+            val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+            Files.createDirectories(sourceFile.parent)
+            sourceFile.toFile().writeText(source)
+            val initial = MineKotAssistedFixEngine(projectDirectory).preview(MineKotAssistRequestDocument())
+            val candidate = initial.report.candidates.single()
+            val requested = MineKotAssistRequestDocument(
+                requests = listOf(
+                    MineKotAssistRequest(
+                        findingId = candidate.findingId,
+                        action = candidate.action,
+                        options = MineKotMagicNumberOptions(constantName = "${name.uppercase()}_VALUE"),
+                    ),
+                ),
+            )
+
+            val corrected = MineKotAssistedFixEngine(projectDirectory).preview(requested).replacements.values.single()
+            val expectedType = when (name) {
+                "Hex", "Binary" -> "Int"
+                else -> name
+            }
+            assertTrue(corrected.contains("private const val ${name.uppercase()}_VALUE: ${expectedType}"), corrected)
+        }
+    }
+
+    @Test
+    fun `File to Path preview updates declarations and consumers project wide`() {
+        val projectDirectory = Files.createTempDirectory("minekot-file-to-path")
+        val apiFile = projectDirectory.resolve("src/main/kotlin/Api.kt")
+        val consumerFile = projectDirectory.resolve("src/test/kotlin/Consumer.kt")
+        Files.createDirectories(apiFile.parent)
+        Files.createDirectories(consumerFile.parent)
+        apiFile.toFile().writeText("import java.io.File\n\nfun load(input: File): File = input\n")
+        consumerFile.toFile().writeText("import java.io.File\n\nfun use(): File = load(File(\"input.txt\"))\n")
+        val initial = MineKotAssistedFixEngine(projectDirectory).preview(MineKotAssistRequestDocument())
+        val requests = initial.report.candidates.map { candidate ->
+            MineKotAssistRequest(
+                findingId = candidate.findingId,
+                action = candidate.action,
+                options = MineKotFileToPathOptions(symbol = "load"),
+            )
+        }
+
+        val preview = MineKotAssistedFixEngine(projectDirectory).preview(
+            MineKotAssistRequestDocument(requests = requests),
+        )
+
+        assertEquals(setOf(apiFile, consumerFile), preview.replacements.keys)
+        preview.replacements.values.forEach { source ->
+            assertTrue(source.contains("import java.nio.file.Path"), source)
+            assertFalse(source.contains("java.io.File"), source)
+        }
+        assertTrue(preview.replacements.getValue(consumerFile).contains("load(Path.of(\"input.txt\"))"))
+    }
+
+    @Test
+    fun `File to Path preview preserves comments strings and unrelated symbols`() {
+        val projectDirectory = Files.createTempDirectory("minekot-file-to-path-safety")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Api.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            """
+            import java.io.File
+
+            fun load(input: File): File = input // File remains documentation
+            fun unrelated(input: File): String = "File"
+            """.trimIndent() + "\n",
+        )
+        val initial = MineKotAssistedFixEngine(projectDirectory).preview(MineKotAssistRequestDocument())
+        val candidate = initial.report.candidates.single { item -> item.action == "file-to-path" }
+        val requested = MineKotAssistRequestDocument(
+            requests = listOf(
+                MineKotAssistRequest(
+                    findingId = candidate.findingId,
+                    action = candidate.action,
+                    options = MineKotFileToPathOptions(symbol = "load"),
+                ),
+            ),
+        )
+
+        val corrected = MineKotAssistedFixEngine(projectDirectory).preview(requested).replacements.getValue(sourceFile)
+
+        assertTrue(corrected.contains("fun load(input: Path): Path"), corrected)
+        assertTrue(corrected.contains("// File remains documentation"), corrected)
+        assertTrue(corrected.contains("fun unrelated(input: File): String = \"File\""), corrected)
+    }
+
+    @Test
+    fun `assisted preview requests semantic choices and rejects unsafe exception and lifecycle shapes`() {
+        val projectDirectory = Files.createTempDirectory("minekot-assisted-choices")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            """
+            fun work(name: String): Unit {
+                runCatching { println(name) }
+                Thread.sleep(1)
+                println("§aHello ${'$'}name")
+                Thread { println(name) }
+                try { println(name) } catch (error: Exception) { println(error) } finally { println("cleanup") }
+            }
+            """.trimIndent(),
+        )
+
+        val report = MineKotAssistedFixEngine(projectDirectory)
+            .preview(MineKotAssistRequestDocument())
+            .report
+        val coroutine = report.candidates.first { candidate ->
+            candidate.action == "coroutine-preference" && candidate.status == "needs-input"
+        }
+        val miniMessage = report.candidates.single { candidate -> candidate.action == "minimessage-text" }
+        val unsupported = report.candidates.filter { candidate -> candidate.status == "unsupported" }
+
+        assertEquals(
+            setOf("scope-property", "dispatcher", "cancellation-point", "cleanup-method"),
+            coroutine.requiredOptions.toSet(),
+        )
+        assertTrue("placeholders-expression" in miniMessage.requiredOptions)
+        assertTrue(unsupported.any { candidate -> candidate.action == "coroutine-preference" })
+        assertTrue(unsupported.any { candidate -> candidate.action == "forbidden-try-catch" })
+    }
+
+    @Test
+    fun `mineKotFormat corrects source and proves second pass idempotence`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        writeGradleProperties(
+            projectDirectory,
+            "org.gradle.caching=true",
+            "org.gradle.parallel=true",
+            "org.gradle.configureondemand=true",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            """
+            /**
+             * Creates a greeting.
+             *
+             * @param name greeting recipient.
+             * @return formatted greeting.
+             */
+            fun greeting(name: String): String = "Hello ${'$'}name"
+            """.trimIndent() + "\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormat")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatIdempotence")?.outcome)
+        assertTrue(sourceFile.toFile().readText().contains("\"Hello ${'$'}{name}\""))
+    }
+
+    @Test
+    fun `mineKotFormat leaves sources unchanged when staged validation fails`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        writeGradleProperties(
+            projectDirectory,
+            "org.gradle.caching=true",
+            "org.gradle.parallel=true",
+            "org.gradle.configureondemand=true",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        val original = "fun greeting(name: String): String = \"Hello ${'$'}name\"\nfun broken(\n"
+        sourceFile.toFile().writeText(original)
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        runGradleAndFail(projectDirectory, "mineKotFormat")
+
+        assertEquals(original, sourceFile.toFile().readText())
     }
 
     @Test
@@ -470,6 +815,31 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":writeMineKotProjectFiles")?.outcome)
         assertEquals("keep me", projectDirectory.resolve("README.md").toFile().readText())
+    }
+
+    @Test
+    fun `transactional publication restores every moved source after failure`() {
+        val projectDirectory = Files.createTempDirectory("minekot-transaction-test")
+        val first = projectDirectory.resolve("First.kt")
+        val second = projectDirectory.resolve("Second.kt")
+        first.toFile().writeText("first-original\n")
+        second.toFile().writeText("second-original\n")
+
+        val failure = assertThrows(org.gradle.api.GradleException::class.java) {
+            MineKotTransactionalPublisher.publish(
+                root = projectDirectory,
+                replacements = mapOf(
+                    first to "first-new\n".toByteArray(),
+                    second to "second-new\n".toByteArray(),
+                ),
+                transactionDirectory = projectDirectory.resolve("transaction"),
+                failureAfterMoves = 1,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("original sources were restored"))
+        assertEquals("first-original\n", first.toFile().readText())
+        assertEquals("second-original\n", second.toFile().readText())
     }
 
     private fun createProject(repositoriesMode: String = "FAIL_ON_PROJECT_REPOS"): Path {
@@ -518,5 +888,12 @@ class MineKotToolchainPluginTest {
         return requireNotNull(javaClass.classLoader.getResource("fixtures/${path}")) {
             "Missing test fixture ${path}."
         }.readText()
+    }
+
+    private companion object {
+        val assistJson: Json = Json {
+            prettyPrint = true
+            prettyPrintIndent = "  "
+        }
     }
 }

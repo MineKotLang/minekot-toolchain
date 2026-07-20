@@ -62,11 +62,20 @@ class TrailingCommaRule(config: Config) : Rule(config, "MineKot codestyle rule."
 
     override fun visitDestructuringDeclaration(multiDeclaration: KtDestructuringDeclaration) {
         super.visitDestructuringDeclaration(multiDeclaration)
+        if ('\n' !in multiDeclaration.text.substringBefore('=')) {
+            return
+        }
         multiDeclaration.reportMissingTrailingComma(multiDeclaration.entries.lastOrNull())
     }
 
     override fun visitArrayAccessExpression(expression: KtArrayAccessExpression) {
         super.visitArrayAccessExpression(expression)
+        val leftBracket = expression.leftBracket ?: return
+        val rightBracket = expression.rightBracket ?: return
+        val source = expression.containingKtFile.text
+        if ('\n' !in source.substring(leftBracket.textRange.startOffset, rightBracket.textRange.endOffset)) {
+            return
+        }
         expression.reportMissingTrailingComma(expression.indexExpressions.lastOrNull())
     }
 

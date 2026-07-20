@@ -94,7 +94,13 @@ fun Path.createMineKotParentDirectories(): Path {
     return this
 }
 
-private fun moveMineKotReplacing(source: Path, target: Path) {
+/**
+ * Moves [source] to [target], replacing the target and preferring an atomic move.
+ *
+ * @param source Source path.
+ * @param target Target path.
+ */
+fun moveMineKotReplacing(source: Path, target: Path) {
     runCatching {
         source.moveTo(target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     }.getOrElse {

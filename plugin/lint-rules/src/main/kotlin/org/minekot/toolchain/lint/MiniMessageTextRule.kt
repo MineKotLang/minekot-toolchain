@@ -25,9 +25,6 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
 
     override fun visitStringTemplateExpression(expression: KtStringTemplateExpression) {
         super.visitStringTemplateExpression(expression)
-        if (expression.isInGradleKotlinDsl()) {
-            return
-        }
         val text = expression.text
         if (legacyColorPattern.containsMatchIn(text)) {
             report(
@@ -37,7 +34,7 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
                     message = "Use MiniMessage tags instead of legacy color codes.",
                 ),
             )
-        } else if (expression.isDirectUserFacingArgument()) {
+        } else if (expression.isDirectUserFacingArgument() && !expression.isInsideMiniMessageCall()) {
             report(
                 CodeSmell(
                     issue = issue,
@@ -50,7 +47,7 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
 
     override fun visitBinaryExpression(expression: KtBinaryExpression) {
         super.visitBinaryExpression(expression)
-        if (expression.isInGradleKotlinDsl() || expression.isInKspDiagnosticSource()) {
+        if (expression.isInKspDiagnosticSource()) {
             return
         }
         if (
@@ -71,9 +68,6 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
 
     private fun KtBinaryExpression.hasStringTemplateOperand(): Boolean =
         left.containsStringTemplate() || right.containsStringTemplate()
-
-    private fun KtExpression.isInGradleKotlinDsl(): Boolean =
-        containingKtFile.name.endsWith(gradleKotlinDslSuffix)
 
     private fun KtExpression.isInKspDiagnosticSource(): Boolean =
         containingKtFile.importDirectives.any { directive ->
@@ -121,6 +115,11 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
         return call.isUserFacingCall()
     }
 
+    private fun KtStringTemplateExpression.isInsideMiniMessageCall(): Boolean =
+        parents.filterIsInstance<KtCallExpression>().any { call ->
+            call.calleeExpression?.text in miniMessageCalls
+        }
+
     private fun KtCallExpression.isUserFacingCall(): Boolean {
         val callName = calleeExpression?.text ?: return false
         if (callName in directUserFacingCalls) {
@@ -142,7 +141,12 @@ class MiniMessageTextRule(config: Config) : Rule(config, "MineKot codestyle rule
     }
 
     private companion object {
-        private const val gradleKotlinDslSuffix: String = ".gradle.kts"
+        private val miniMessageCalls: Set<String> = setOf(
+            "deserialize",
+            "mineKotMiniMessage",
+            "mineKotMiniMessageResult",
+            "toMineKotMiniMessageComponent",
+        )
         private val directUserFacingCalls: Set<String> = setOf(
             "broadcast",
             "notify",

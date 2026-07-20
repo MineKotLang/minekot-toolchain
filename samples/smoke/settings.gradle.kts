@@ -3,9 +3,9 @@ rootProject.name = "smoke"
 pluginManagement {
     includeBuild("../..")
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
-        mavenLocal()
     }
 }
 
@@ -18,8 +18,8 @@ includeBuild("../..") {
 
 dependencyResolutionManagement {
     repositories {
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
         maven("https://maven.minekot.org/releases")
         maven("https://maven.minekot.org/snapshots")
     }

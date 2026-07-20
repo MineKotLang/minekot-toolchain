@@ -6,6 +6,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":plugin:minekot-toolchain-lint-rules"))
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kotlin.serialization.gradle.plugin)
     implementation(libs.detekt.gradle.plugin)
@@ -15,6 +16,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.atomicfu)
     implementation(libs.bundles.adventure)
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.tables)
     testImplementation(gradleTestKit())
     testImplementation(libs.junit.jupiter)
 }

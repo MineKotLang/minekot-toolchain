@@ -146,7 +146,7 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
             ?.getArgumentExpression()
             ?.text
             ?.removeSurrounding("\"") ?: return false
-        return !camelCaseTaskNamePattern.matches(taskName)
+        return !camelCaseTaskNamePattern.matches(taskName) || taskActionVerbs.none(taskName::startsWith)
     }
 
     private fun KtCallExpression.isVerboseMavenRepositoryDeclaration(): Boolean =
@@ -197,7 +197,7 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
 
     private fun KtCallExpression.isUntypedAccessor(): Boolean =
         calleeExpression?.text == "the" ||
-                calleeExpression?.text == "withType" && valueArguments.any { argument ->
+                calleeExpression?.text in setOf("getByType", "withType") && valueArguments.any { argument ->
             argument.text.contains("::class.java")
         }
 
@@ -247,6 +247,24 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
         private val simpleVerboseMavenRepositoryPattern: Regex =
             Regex("maven\\s*\\{\\s*url\\s*=\\s*uri\\((\"[^\"]*\")\\)\\s*}")
         private val taskRegistrationCalls: Set<String> = setOf("create", "register")
+        private val taskActionVerbs: Set<String> = setOf(
+            "assemble",
+            "build",
+            "check",
+            "clean",
+            "compile",
+            "format",
+            "generate",
+            "lint",
+            "mineKot",
+            "print",
+            "prepare",
+            "publish",
+            "run",
+            "test",
+            "verify",
+            "write",
+        )
         private val eagerTaskCalls: Set<String> = setOf("create", "getByName", "getAt", "withType")
         private val multilineGradleBlocks: Set<String> = setOf("dependencies", "plugins", "repositories")
         private val namedContainers: Set<String> = setOf("configurations", "extensions")

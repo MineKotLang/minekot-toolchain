@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "sourceFingerprint": "7d365ecfcae66b4c59252f8be0e6137af6140a818ee663dfb2fb194930036d46",
+  "reviewer": "OpenAI Codex",
+  "reviewedAt": "2026-07-20T19:31:24Z",
+  "checks": [
+    {
+      "id": "language.american-english",
+      "confirmed": true
+    },
+    {
+      "id": "versions.latest-stable",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.data-driven-design",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.modular-decoupling",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.internal-extensions",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.comment-necessity",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.minimessage-localization",
+      "confirmed": true
+    },
+    {
+      "id": "kotlin.blocking-operations",
+      "confirmed": true
+    },
+    {
+      "id": "gradle.dependency-scopes",
+      "confirmed": true
+    },
+    {
+      "id": "gradle.convention-extraction",
+      "confirmed": true
+    },
+    {
+      "id": "gradle.repository-classification",
+      "confirmed": true
+    },
+    {
+      "id": "gradle.resolution-strategy",
+      "confirmed": true
+    },
+    {
+      "id": "gradle.test-architecture",
+      "confirmed": true
+    },
+    {
+      "id": "markdown.content-quality",
+      "confirmed": true
+    },
+    {
+      "id": "markdown.external-links",
+      "confirmed": true
+    }
+  ]
+}

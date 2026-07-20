@@ -1,97 +1,103 @@
 # MineKot Detekt configuration
 # Enables MineKot codestyle rules and resolves overlaps with Detekt defaults.
 minekot:
-  ForbiddenTryCatch:
-    active: true
-  StringTemplateBraces:
-    active: true
-    autoCorrect: true
-  MiniMessageText:
-    active: true
-  MissingKDoc:
-    active: true
-  CoroutinePreference:
-    active: true
-  MagicNumber:
-    active: true
-  ResultHandling:
-    active: true
-  KotlinxPreference:
-    active: true
-  TrailingComma:
-    active: true
-    autoCorrect: true
-  ParameterWrapping:
-    active: true
-    autoCorrect: true
-  ForEachPreference:
-    active: true
-  GradleDslConventions:
-    active: true
-    autoCorrect: true
-  ImportPolicy:
-    active: true
-    autoCorrect: true
-  SourceFilePolicy:
-    active: true
-    autoCorrect: true
-  CommentFormatting:
-    active: true
-    autoCorrect: true
-  ExplicitScopeInNestedScope:
-    active: false
+    ForbiddenTryCatch:
+        active: true
+    StringTemplateBraces:
+        active: true
+        autoCorrect: true
+    MiniMessageText:
+        active: true
+    MissingKDoc:
+        active: true
+    CoroutinePreference:
+        active: true
+    MagicNumber:
+        active: true
+    ResultHandling:
+        active: true
+        autoCorrect: true
+    KotlinxPreference:
+        active: true
+        autoCorrect: true
+    ResolvedApiPreference:
+        active: true
+    TrailingComma:
+        active: true
+        autoCorrect: true
+    LineWrapping:
+        active: true
+        autoCorrect: true
+    ForEachPreference:
+        active: true
+        autoCorrect: true
+    GradleDslConventions:
+        active: true
+        autoCorrect: true
+    ImportPolicy:
+        active: true
+        autoCorrect: true
+    SourceFilePolicy:
+        active: true
+        autoCorrect: true
+    CommentFormatting:
+        active: true
+        autoCorrect: true
+    ExplicitScopeInNestedScope:
+        active: true
+        autoCorrect: true
 
 style:
-  MagicNumber:
-    active: false
-  MaxLineLength:
-    active: true
-    maxLineLength: 120
-  NewLineAtEndOfFile:
-    active: true
-  NoTabs:
-    active: true
-  SpacingAfterPackageAndImports:
-    active: true
-  WildcardImport:
-    active: false
+    MagicNumber:
+        active: false
+    MaxLineLength:
+        active: true
+        maxLineLength: 120
+    NewLineAtEndOfFile:
+        active: true
+    NoTabs:
+        active: true
+    SpacingAfterPackageAndImports:
+        active: true
+    WildcardImport:
+        active: false
 
 coroutines:
-  SleepInsteadOfDelay:
-    active: false
+    SleepInsteadOfDelay:
+        active: false
 
 ktlint:
-  active: true
-  autoCorrect: true
-  Indentation:
     active: true
-    indentSize: 4
-  NoBlankLineBeforeRbrace:
-    active: true
-  NoConsecutiveBlankLines:
-    active: true
-  NoEmptyFirstLineInClassBody:
-    active: true
-    indentSize: 4
-  NoEmptyFirstLineInMethodBlock:
-    active: true
-  NoMultipleSpaces:
-    active: true
-  NoTrailingSpaces:
-    active: true
-  SpacingAroundColon:
-    active: true
-  SpacingAroundComma:
-    active: true
-  SpacingAroundCurly:
-    active: true
-  SpacingAroundOperators:
-    active: true
-  SpacingAroundRangeOperator:
-    active: true
-  SpacingAroundUnaryOperator:
-    active: true
-  SpacingBetweenDeclarationsWithAnnotations:
-    active: true
-  SpacingBetweenDeclarationsWithComments:
-    active: true
+    autoCorrect: true
+    Indentation:
+        active: true
+        indentSize: 4
+    NoBlankLineBeforeRbrace:
+        active: true
+    NoConsecutiveBlankLines:
+        active: true
+    NoEmptyFirstLineInClassBody:
+        active: true
+        indentSize: 4
+    NoEmptyFirstLineInMethodBlock:
+        active: true
+    NoMultipleSpaces:
+        active: true
+    NoTrailingSpaces:
+        active: true
+    SpacingAroundColon:
+        active: true
+    SpacingAroundComma:
+        active: true
+    SpacingAroundCurly:
+        active: true
+    SpacingAroundOperators:
+        active: true
+    SpacingAroundRangeOperator:
+        active: true
+    SpacingAroundUnaryOperator:
+        active: true
+    SpacingBetweenDeclarationsWithAnnotations:
+        active: true
+    SpacingBetweenDeclarationsWithComments:
+        active: true

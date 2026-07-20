@@ -9,14 +9,14 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtImportDirective
 
 /**
- * Enforces MineKot wildcard thresholds, import group ordering, and nested-class import policy.
+ * Enforces MineKot wildcard thresholds and nested-class import policy.
  */
 @AutoCorrectable(since = "2.0.0")
 class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
     private val issue: Issue = Issue(
         id = "ImportPolicy",
         severity = Severity.Style,
-        description = "MineKot imports use data-driven wildcard thresholds and a fixed group order.",
+        description = "MineKot imports use data-driven wildcard thresholds and qualified nested classes.",
         debt = Debt.FIVE_MINS,
     )
 
@@ -33,7 +33,6 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
 
     override fun visit(root: KtFile) {
         super.visit(root)
-        root.reportImportOrdering()
         root.reportMissingWildcardImports()
     }
 
@@ -55,55 +54,7 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
         }
     }
 
-    private fun KtFile.reportImportOrdering() {
-        val actualImports = importDirectives.mapNotNull { directive ->
-            directive.importPath?.pathStr?.let { path ->
-                if (directive.isAllUnder) "${path}.*" else path
-            }
-        }
-        val expectedImports = actualImports.sortedWith(
-            compareBy<String> { path -> path.importGroup() }
-                .thenBy { path -> path },
-        )
-        if (actualImports == expectedImports) {
-            return
-        }
-        report(
-            CodeSmell(
-                issue = issue,
-                entity = Entity.from(importList ?: this),
-                message = "Order imports as wildcards, java, javax, kotlin, then all other imports.",
-            ),
-        )
-        scheduleImportOrdering()
-    }
-
-    private fun KtFile.scheduleImportOrdering() {
-        val firstImport = importDirectives.firstOrNull() ?: return
-        val lastImport = importDirectives.lastOrNull() ?: return
-        val source = text.substring(firstImport.textRange.startOffset, lastImport.textRange.endOffset)
-        if (source.contains("//") || source.contains("/*")) {
-            return
-        }
-        val orderedDirectives = importDirectives.sortedWith(
-            compareBy<KtImportDirective> { directive -> directive.sortPath().importGroup() }
-                .thenBy { directive -> directive.sortPath() }
-                .thenBy { directive -> directive.text },
-        )
-        val replacement = orderedDirectives.joinToString(separator = "\n") { directive -> directive.text }
-        edits.replace(firstImport.textRange.startOffset, lastImport.textRange.endOffset, replacement)
-    }
-
-    private fun KtImportDirective.sortPath(): String {
-        val path = importPath?.pathStr.orEmpty()
-        return if (isAllUnder) "${path}.*" else path
-    }
-
     private fun KtFile.reportMissingWildcardImports() {
-        val importsAreOrdered = importDirectives.map { directive -> directive.sortPath() } ==
-                importDirectives.map { directive -> directive.sortPath() }.sortedWith(
-                    compareBy<String> { path -> path.importGroup() }.thenBy { path -> path },
-                )
         importDirectives
             .filterNot { directive -> directive.isAllUnder || directive.aliasName != null }
             .groupBy { directive -> directive.importedFqName?.parent()?.asString().orEmpty() }
@@ -115,7 +66,7 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
                     return@forEach
                 }
                 val threshold = when {
-                    onDemandPackages.any { packageName ->
+                    scope == javaUtilPackage || recursiveOnDemandPackages.any { packageName ->
                         scope == packageName || scope.startsWith("${packageName}.")
                     } -> onDemandWildcardThreshold
 
@@ -131,9 +82,7 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
                         message = "Replace ${imports.size} imports from ${scope} with ${scope}.*.",
                     ),
                 )
-                if (importsAreOrdered) {
-                    scheduleWildcardImport(scope, imports)
-                }
+                scheduleWildcardImport(scope, imports)
             }
     }
 
@@ -157,27 +106,10 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
             }
     }
 
-    private fun String.importGroup(): Int =
-        when {
-            endsWith(".*") -> wildcardImportGroup
-            startsWith("java.") -> javaImportGroup
-            startsWith("javax.") -> javaxImportGroup
-            startsWith("kotlin.") -> kotlinImportGroup
-            else -> otherImportGroup
-        }
-
     private companion object {
-        private const val wildcardImportGroup: Int = 0
-        private const val javaImportGroup: Int = 1
-        private const val javaxImportGroup: Int = 2
-        private const val kotlinImportGroup: Int = 3
-        private const val otherImportGroup: Int = 4
         private const val packageWildcardThreshold: Int = 5
         private const val onDemandWildcardThreshold: Int = 1
-        private val onDemandPackages: Set<String> = setOf(
-            "io.ktor",
-            "java.util",
-            "kotlinx.android.synthetic",
-        )
+        private const val javaUtilPackage: String = "java.util"
+        private val recursiveOnDemandPackages: Set<String> = setOf("io.ktor", "kotlinx.android.synthetic")
     }
 }

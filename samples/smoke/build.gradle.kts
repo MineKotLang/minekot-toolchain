@@ -1,7 +1,5 @@
 plugins {
-    id(
-        "org.minekot.toolchain",
-    )
+    id("org.minekot.toolchain")
 }
 
 val projectJavaVersion = 21
@@ -9,7 +7,10 @@ val smokeProjectDescription = "MineKot Java ${projectJavaVersion} smoke"
 
 description = smokeProjectDescription
 
-listOf("minekot.rootDir", rootProject.projectDir.absolutePath)
+listOf(
+    "minekot.rootDir",
+    rootProject.projectDir.absolutePath,
+)
     .forEach { dependency ->
         require(dependency.isNotBlank())
     }
@@ -29,34 +30,18 @@ configurations.configureEach {
 
 minekotToolchain {
     build {
-        javaVersion.set(
-            projectJavaVersion,
-        )
+        javaVersion.set(projectJavaVersion)
     }
     adventure {
-        enabled.set(
-            false,
-        )
+        enabled.set(false)
     }
     lint {
-        enabled.set(
-            true,
-        )
-        autoCorrect.set(
-            false,
-        )
-        buildUponDefaultConfig.set(
-            false,
-        )
-        configFile.set(
-            layout.projectDirectory.file(
-                "config/detekt/minekot.yml",
-            ),
-        )
+        enabled.set(true)
+        autoCorrect.set(false)
+        buildUponDefaultConfig.set(false)
+        configFile.set(layout.projectDirectory.file("config/detekt/minekot.yml"))
     }
     testing {
-        enabled.set(
-            false,
-        )
+        enabled.set(false)
     }
 }

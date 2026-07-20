@@ -6,6 +6,8 @@ import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
  * Flags obvious thread and timer APIs where coroutines should be preferred.
@@ -26,7 +28,9 @@ class CoroutinePreferenceRule(config: Config) : Rule(config, "MineKot codestyle 
         if (
             expression.isBlockedConstructorCall(callName) ||
             expression.isBlockedQualifiedCall() ||
-            callName in blockedSchedulerCalls && !expression.bridgesIntoCoroutineScope()
+            callName in blockedSchedulerCalls &&
+            !expression.bridgesIntoCoroutineScope() &&
+            !expression.isPlatformSchedulerBridge()
         ) {
             report(
                 CodeSmell(
@@ -40,6 +44,11 @@ class CoroutinePreferenceRule(config: Config) : Rule(config, "MineKot codestyle 
 
     private fun KtCallExpression.bridgesIntoCoroutineScope(): Boolean =
         text.contains("scope.launch") || text.contains("scope.async")
+
+    private fun KtCallExpression.isPlatformSchedulerBridge(): Boolean =
+        parents.filterIsInstance<KtNamedFunction>().firstOrNull()?.let { function ->
+            function.name in platformSchedulerBridgeNames
+        } == true
 
     private fun KtCallExpression.isBlockedQualifiedCall(): Boolean {
         val qualifiedExpression = parent as? KtDotQualifiedExpression ?: return false
@@ -90,6 +99,10 @@ class CoroutinePreferenceRule(config: Config) : Rule(config, "MineKot codestyle 
             "runTaskTimerAsynchronously",
             "scheduleAsyncDelayedTask",
             "scheduleSyncDelayedTask",
+        )
+        private val platformSchedulerBridgeNames: Set<String> = setOf(
+            "scheduleDelayedTask",
+            "scheduleRepeatingTask",
         )
     }
 }
