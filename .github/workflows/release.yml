@@ -2,63 +2,63 @@
 name: Release toolchain
 
 on:
-    push:
-        tags:
-            - "v*"
+  push:
+    tags:
+      - "v*"
 
 permissions:
-    contents: read
+  contents: read
 
 concurrency:
-    group: toolchain-release-${{ github.ref }}
-    cancel-in-progress: false
+  group: toolchain-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-    release:
-        name: Verify and publish
-        runs-on: ubuntu-24.04
-        timeout-minutes: 35
-        environment: production
-        permissions:
-            contents: write
+  release:
+    name: Verify and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: production
+    permissions:
+      contents: write
+    env:
+      MINEKOT_MAVEN_PASSWORD: ${{ secrets.MINEKOT_MAVEN_PASSWORD }}
+      MINEKOT_MAVEN_USERNAME: ${{ secrets.MINEKOT_MAVEN_USERNAME }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5.6.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@v6.2.0
+        with:
+          cache-read-only: "false"
+
+      - name: Validate immutable release context
+        shell: bash
+        run: |
+          git fetch --no-tags origin master
+          version=${GITHUB_REF_NAME#v}
+          test "$GITHUB_SHA" = "$(git rev-parse origin/master)"
+          test "$version" = "$(sed -n 's/^version=//p' gradle.properties)"
+
+      - name: Verify release
+        run: >-
+          ./gradlew check mineKotSmokeTest --warning-mode=fail --no-scan --no-daemon
+          --no-configuration-cache --no-build-cache
+
+      - name: Publish Maven artifacts
+        run: >-
+          ./gradlew publish --warning-mode=fail --no-scan --no-daemon
+          --no-configuration-cache --no-build-cache
+
+      - name: Create GitHub release
         env:
-            MINEKOT_MAVEN_PASSWORD: ${{ secrets.MINEKOT_MAVEN_PASSWORD }}
-            MINEKOT_MAVEN_USERNAME: ${{ secrets.MINEKOT_MAVEN_USERNAME }}
-        steps:
-            - uses: actions/checkout@v7.0.1
-              with:
-                  fetch-depth: 0
-
-            - uses: actions/setup-java@v5.6.0
-              with:
-                  distribution: temurin
-                  java-version: "25"
-
-            - uses: gradle/actions/setup-gradle@v6.2.0
-              with:
-                  cache-read-only: "false"
-
-            - name: Validate immutable release context
-              shell: bash
-              run: |
-                  git fetch --no-tags origin master
-                  version=${GITHUB_REF_NAME#v}
-                  test "$GITHUB_SHA" = "$(git rev-parse origin/master)"
-                  test "$version" = "$(sed -n 's/^version=//p' gradle.properties)"
-
-            - name: Verify release
-              run: >-
-                  ./gradlew check mineKotSmokeTest --warning-mode=fail --no-scan --no-daemon
-                  --no-configuration-cache --no-build-cache
-
-            - name: Publish Maven artifacts
-              run: >-
-                  ./gradlew publish --warning-mode=fail --no-scan --no-daemon
-                  --no-configuration-cache --no-build-cache
-
-            - name: Create GitHub release
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: >-
-                  gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
-                  --notes "See CHANGELOG.md for full release details."
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          --notes "See CHANGELOG.md for full release details."
