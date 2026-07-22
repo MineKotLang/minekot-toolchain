@@ -46,6 +46,11 @@ jobs:
           test "$GITHUB_SHA" = "$(git rev-parse origin/master)"
           test "$version" = "$(sed -n 's/^version=//p' gradle.properties)"
 
+      - name: Bootstrap current toolchain artifacts
+        run: >-
+          ./gradlew publishToMavenLocal --warning-mode=fail --no-scan --no-daemon
+          --no-configuration-cache --no-build-cache
+
       - name: Verify release
         run: >-
           ./gradlew check mineKotSmokeTest --warning-mode=fail --no-scan --no-daemon

@@ -34,6 +34,11 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name != 'push' }}
 
+      - name: Bootstrap current toolchain artifacts
+        run: >-
+          ./gradlew publishToMavenLocal --warning-mode=fail --no-scan --no-daemon
+          --no-configuration-cache --no-build-cache
+
       - name: Execute toolchain verification
         run: >-
           ./gradlew check mineKotSmokeTest --warning-mode=fail --no-scan --no-daemon

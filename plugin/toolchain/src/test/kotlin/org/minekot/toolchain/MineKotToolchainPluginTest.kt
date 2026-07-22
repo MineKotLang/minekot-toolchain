@@ -464,6 +464,12 @@ class MineKotToolchainPluginTest {
         val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
         Files.createDirectories(sourceFile.parent)
         sourceFile.toFile().writeText("fun main(): Unit = Unit\n")
+        val codexMemory = projectDirectory.resolve(".codex/memories/MEMORY.md")
+        Files.createDirectories(codexMemory.parent)
+        codexMemory.toFile().writeText("# AGENT METADATA\nWrapped\nparagraph.\n")
+        val agentMetadata = projectDirectory.resolve(".agents/notes.md")
+        Files.createDirectories(agentMetadata.parent)
+        agentMetadata.toFile().writeText("# AGENT METADATA\nWrapped\nparagraph.\n")
 
         val result = runGradle(projectDirectory, "verifyMineKotCodestyle")
 

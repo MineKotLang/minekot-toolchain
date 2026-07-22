@@ -99,7 +99,8 @@ abstract class VerifyMineKotCodestyleTask : DefaultTask() {
         private val utf8Bom: ByteArray = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
         private const val markdownExtension: String = "md"
         private val sourceExtensions: Set<String> = setOf("kt", "kts", markdownExtension)
-        private val ignoredDirectories: Set<String> = setOf(".git", ".gradle", ".idea", "build", "out")
+        private val ignoredDirectories: Set<String> =
+            setOf(".agents", ".codex", ".git", ".gradle", ".idea", "build", "out")
         private val forbiddenGroovyExtensions: Set<String> = setOf("gradle", "groovy")
         private val requiredGradleProperties: Map<String, String> = mapOf(
             "org.gradle.caching" to "true",
