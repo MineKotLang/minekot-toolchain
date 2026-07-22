@@ -13,8 +13,7 @@ val MineKotAnsi: ANSIComponentSerializer = ANSIComponentSerializer.ansi()
  *
  * @return ANSI string.
  */
-fun Component.toMineKotAnsi(): String =
-    MineKotAnsi.serialize(this)
+fun Component.toMineKotAnsi(): String = MineKotAnsi.serialize(this)
 
 /**
  * Serializes a component to ANSI text and captures failures.

@@ -10,6 +10,7 @@ dependencies {
     runtimeOnly(libs.adventure.gson) {
         isTransitive = false
     }
+    testRuntimeOnly(libs.adventure.gson)
 }
 
 publishing {

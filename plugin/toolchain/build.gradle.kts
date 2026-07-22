@@ -1,3 +1,6 @@
+import org.gradle.jvm.tasks.Jar
+import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     `java-gradle-plugin`
@@ -28,9 +31,19 @@ gradlePlugin {
             id = "org.minekot.toolchain"
             implementationClass = "org.minekot.toolchain.MineKotToolchainPlugin"
             displayName = "MineKot Toolchain"
-            description = "MineKot project conventions, dependencies, publishing, and lint."
+            description = "MineKot project conventions, dependencies, CI/CD, publishing, and lint."
         }
     }
+}
+
+val pluginJar = tasks.named<Jar>("jar") {
+    manifest {
+        attributes["Implementation-Version"] = project.version
+    }
+}
+
+tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+    pluginClasspath.setFrom(pluginJar, configurations.runtimeClasspath)
 }
 
 publishing {

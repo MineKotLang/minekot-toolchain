@@ -167,6 +167,31 @@ class MineKotToolchainPluginTest {
     }
 
     @Test
+    fun `plugin disables up to date checks for check tasks`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+
+        runGradle(
+            projectDirectory,
+            "check",
+            "-x",
+            "verifyMineKotCodestyle",
+            "-x",
+            "verifyMineKotSemanticReview",
+        )
+        val result = runGradle(
+            projectDirectory,
+            "check",
+            "-x",
+            "verifyMineKotCodestyle",
+            "-x",
+            "verifyMineKotSemanticReview",
+        )
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":check")?.outcome)
+    }
+
+    @Test
     fun `plugin configures project repositories`() {
         val projectDirectory = createProject(repositoriesMode = "PREFER_PROJECT")
         writeBuildFixture(projectDirectory, "repositories.gradle.kts")
@@ -175,7 +200,7 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotRepositories")?.outcome)
         assertTrue(result.output.contains("minekotReleases"))
-        assertTrue(result.output.contains("https://maven.minekot.org/releases"))
+        assertTrue(result.output.contains("https://maven2.minekot.org/releases"))
         assertFalse(result.output.contains("minekotSnapshots"))
         assertFalse(result.output.contains("MavenLocal"))
         assertFalse(result.output.contains("MavenRepo"))
@@ -842,6 +867,99 @@ class MineKotToolchainPluginTest {
         assertEquals("second-original\n", second.toFile().readText())
     }
 
+    @Test
+    fun `CI CD remains disabled by default`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+
+        val result = runGradle(projectDirectory, "tasks", "--all")
+
+        assertFalse(result.output.contains("writeMineKotCiMetadata"))
+        assertFalse(result.output.contains("publishMineKotPublication"))
+    }
+
+    @Test
+    fun `CI CD writes metadata and validates changelog fragments`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "ci-cd.gradle.kts")
+        val fragment = projectDirectory.resolve(".changes/feature/typed-delivery.md")
+        Files.createDirectories(fragment.parent)
+        fragment.toFile().writeText("Add typed CI/CD delivery tasks.\n")
+
+        val result = runGradle(projectDirectory, "writeMineKotCiMetadata", "verifyMineKotChanges")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":writeMineKotCiMetadata")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":verifyMineKotChanges")?.outcome)
+        val metadata = projectDirectory.resolve("build/reports/minekot/cicd/metadata.json").toFile().readText()
+        assertTrue(metadata.contains("1.21.8"))
+        assertTrue(metadata.contains("1.21.11"))
+    }
+
+    @Test
+    fun `CI CD prepares and verifies stable release evidence`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "ci-cd.gradle.kts")
+        val fragment = projectDirectory.resolve(".changes/feature/typed-delivery.md")
+        Files.createDirectories(fragment.parent)
+        fragment.toFile().writeText("Add typed CI/CD delivery tasks.\n")
+
+        val prepared = runGradle(
+            projectDirectory,
+            "prepareMineKotRelease",
+            "-PreleaseVersion=1.2.0",
+            "-PreleaseDate=2026-07-22",
+        )
+
+        assertEquals(TaskOutcome.SUCCESS, prepared.task(":prepareMineKotRelease")?.outcome)
+        assertFalse(fragment.toFile().exists())
+        assertTrue(projectDirectory.resolve("CHANGELOG.md").toFile().readText().contains("## 1.2.0 - 2026-07-22"))
+
+        val commit = "0123456789abcdef0123456789abcdef01234567"
+        val evidence = projectDirectory.resolve("docs/releases/v1.2.0.md")
+        Files.createDirectories(evidence.parent)
+        evidence.toFile().writeText(
+            """
+            # MineKot v1.2.0 release evidence
+
+            Commit: `${commit}`
+
+            - [x] fabric-1.21.8
+            - [x] neoforge-1.21.8
+            """.trimIndent() + "\n",
+        )
+
+        val verified = runGradle(
+            projectDirectory,
+            "verifyMineKotRelease",
+            "-PreleaseTag=v1.2.0",
+            "-PreleaseVersion=1.2.0",
+            "-PreleaseCommit=${commit}",
+            "-PprotectedBranchCommit=${commit}",
+        )
+
+        assertEquals(TaskOutcome.SUCCESS, verified.task(":verifyMineKotRelease")?.outcome)
+    }
+
+    @Test
+    fun `CI CD assembles exact artifact bundle with checksums`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "ci-cd.gradle.kts")
+        val artifacts = projectDirectory.resolve("build/ci/artifacts")
+        Files.createDirectories(artifacts.resolve("paper"))
+        Files.createDirectories(artifacts.resolve("velocity"))
+        artifacts.resolve("paper/paper.jar").toFile().writeText("paper")
+        artifacts.resolve("velocity/velocity.jar").toFile().writeText("velocity")
+
+        val result = runGradle(projectDirectory, "assembleMineKotRelease")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":assembleMineKotRelease")?.outcome)
+        val bundle = projectDirectory.resolve("build/ci/release")
+        assertTrue(bundle.resolve("paper.jar").toFile().isFile)
+        assertTrue(bundle.resolve("velocity.jar").toFile().isFile)
+        assertTrue(bundle.resolve("SHA256SUMS").toFile().readText().contains("paper.jar"))
+        assertTrue(bundle.resolve("manifest.json").toFile().readText().contains("velocity.jar"))
+    }
+
     private fun createProject(repositoriesMode: String = "FAIL_ON_PROJECT_REPOS"): Path {
         val projectDirectory = Files.createTempDirectory("minekot-toolchain-test")
         writeSettingsFile(projectDirectory, repositoriesMode)
@@ -874,14 +992,14 @@ class MineKotToolchainPluginTest {
         GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
             .withPluginClasspath()
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, "--stacktrace", "--no-build-cache")
             .build()
 
     private fun runGradleAndFail(projectDirectory: Path, vararg arguments: String) =
         GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
             .withPluginClasspath()
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, "--stacktrace", "--no-build-cache")
             .buildAndFail()
 
     private fun readFixture(path: String): String {

@@ -38,16 +38,31 @@ val artifactIds = mapOf(
     ":libraries:adventure:minekot-adv-minimessage" to "minekot-adv-minimessage",
 )
 
+val check = tasks.register("check") {
+    group = "verification"
+    description = "Runs checks for every MineKot toolchain subproject."
+    dependsOn(subprojects.map { subproject -> "${subproject.path}:check" })
+    outputs.upToDateWhen { false }
+    doLast {}
+}
+
 tasks.register<Exec>("mineKotSmokeTest") {
     group = "verification"
     description = "Runs the standalone MineKot plugin smoke project."
+    mustRunAfter(check)
     workingDir = layout.projectDirectory.dir("samples/smoke").asFile
     commandLine(layout.projectDirectory.file("gradlew").asFile.absolutePath, "mineKotSmokeTest", "--no-daemon")
 }
 
 subprojects {
+    pluginManager.apply(BasePlugin::class.java)
     group = rootProject.group
     version = rootProject.version
+
+    tasks.matching { task -> task.name == "check" }.configureEach {
+        outputs.upToDateWhen { false }
+        doLast {}
+    }
 
     pluginManager.withPlugin("base") {
         extensions.configure<BasePluginExtension> {
@@ -102,9 +117,9 @@ subprojects {
                     name = "minekot"
                     url = uri(
                         if (version.toString().endsWith("SNAPSHOT")) {
-                            "https://maven.minekot.org/snapshots"
+                            "https://maven2.minekot.org/snapshots"
                         } else {
-                            "https://maven.minekot.org/releases"
+                            "https://maven2.minekot.org/releases"
                         },
                     )
                     credentials {

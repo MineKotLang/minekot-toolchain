@@ -15,8 +15,8 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         mavenLocal()
-        maven("https://maven.minekot.org/releases")
-        maven("https://maven.minekot.org/snapshots")
+        maven("https://maven2.minekot.org/releases")
+        maven("https://maven2.minekot.org/snapshots")
     }
 }
 

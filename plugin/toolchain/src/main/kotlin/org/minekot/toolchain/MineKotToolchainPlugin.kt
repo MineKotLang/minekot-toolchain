@@ -35,6 +35,12 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.lint.assistRequestFile.convention(project.layout.projectDirectory.file("minekot-fixes.json"))
         extension.lint.assistReportDirectory.convention(project.layout.buildDirectory.dir("reports/minekot"))
         extension.lint.semanticReviewFile.convention(project.rootProject.layout.projectDirectory.file("minekot-review.json"))
+        extension.ciCd.fragmentsDirectory.convention(project.rootProject.layout.projectDirectory.dir(".changes"))
+        extension.ciCd.changelogFile.convention(project.rootProject.layout.projectDirectory.file("CHANGELOG.md"))
+        extension.ciCd.evidenceDirectory.convention(project.rootProject.layout.projectDirectory.dir("docs/releases"))
+        extension.ciCd.artifactsDirectory.convention(project.rootProject.layout.buildDirectory.dir("ci/artifacts"))
+        extension.ciCd.releaseBundleDirectory.convention(project.rootProject.layout.buildDirectory.dir("ci/release"))
+        extension.ciCd.reportDirectory.convention(project.rootProject.layout.buildDirectory.dir("reports/minekot/cicd"))
         configureConventions(project, extension)
 
         project.pluginManager.apply("java-library")
@@ -102,6 +108,8 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 it.maximumAgeDays.set(extension.lint.semanticReviewMaxAgeDays)
             }
         project.tasks.named("check") {
+            it.outputs.upToDateWhen { false }
+            it.doLast {}
             it.dependsOn(verifyMineKotCodestyle, verifyMineKotSemanticReview)
         }
         project.tasks.register("mineKotAssistPreview", MineKotAssistPreviewTask::class.java) {
@@ -182,6 +190,9 @@ class MineKotToolchainPlugin : Plugin<Project> {
             configureDependencies(project, extension)
             if (extension.lint.enabled.get()) {
                 configureLint(project, extension.lint)
+            }
+            if (extension.ciCd.enabled.get()) {
+                configureCiCd(project, extension.ciCd)
             }
         }
     }
@@ -273,12 +284,95 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.testing.enabled.gradlePropertyConvention(project, "minekotToolchain.testing.enabled", true)
         extension.adventure.configureVersionedConventions(project, "adventure", true, "5.2.0")
         extension.lint.enabled.gradlePropertyConvention(project, "minekotToolchain.lint.enabled", true)
+        extension.ciCd.enabled.gradlePropertyConvention(project, "minekotToolchain.ciCd.enabled", false)
+        extension.ciCd.tagPrefix.gradlePropertyConvention(project, "minekotToolchain.ciCd.tagPrefix", "v")
         extension.lint.autoCorrect.gradlePropertyConvention(project, "minekotToolchain.lint.autoCorrect", false)
         extension.lint.buildUponDefaultConfig.gradlePropertyConvention(
             project,
             "minekotToolchain.lint.buildUponDefaultConfig",
             false,
         )
+    }
+
+    private fun configureCiCd(project: Project, ciCd: CiCdFeatureBlock) {
+        require(project == project.rootProject) { "MineKot CI/CD can only be enabled on the root project." }
+        val verifyChanges =
+            project.tasks.register("verifyMineKotChanges", VerifyMineKotChangesTask::class.java) { task ->
+                task.group = "verification"
+                task.description = "Verifies typed MineKot changelog fragments."
+                task.fragmentsDirectory.set(ciCd.fragmentsDirectory)
+                task.categories.set(ciCd.changelogCategories)
+            }
+        project.tasks.named("check") { task -> task.dependsOn(verifyChanges) }
+        project.tasks.register("writeMineKotCiMetadata", WriteMineKotCiMetadataTask::class.java) { task ->
+            task.group = "minekot"
+            task.description = "Writes stable MineKot CI matrix metadata."
+            task.supportedVersions.set(ciCd.supportedVersions)
+            task.publicationProjects.set(ciCd.publicationProjects)
+            task.tagPrefix.set(ciCd.tagPrefix)
+            task.outputFile.set(ciCd.reportDirectory.file("metadata.json"))
+        }
+        project.tasks.register("prepareMineKotRelease", PrepareMineKotReleaseTask::class.java) { task ->
+            task.group = "minekot"
+            task.description = "Folds changelog fragments into a checked-in release section."
+            task.fragmentsDirectory.set(ciCd.fragmentsDirectory)
+            task.categories.set(ciCd.changelogCategories)
+            task.changelogFile.set(ciCd.changelogFile)
+            task.releaseVersion.set(project.providers.gradleProperty("releaseVersion"))
+            task.releaseDate.set(project.providers.gradleProperty("releaseDate"))
+        }
+        project.tasks.register("verifyMineKotRelease", VerifyMineKotReleaseTask::class.java) { task ->
+            task.group = "verification"
+            task.description = "Verifies MineKot release tag, branch head, and stable evidence."
+            task.releaseTag.set(project.providers.gradleProperty("releaseTag"))
+            task.releaseVersion.set(project.providers.gradleProperty("releaseVersion"))
+            task.releaseCommit.set(project.providers.gradleProperty("releaseCommit"))
+            task.protectedBranchCommit.set(project.providers.gradleProperty("protectedBranchCommit"))
+            task.tagPrefix.set(ciCd.tagPrefix)
+            task.evidenceDirectory.set(ciCd.evidenceDirectory)
+            task.requiredEvidenceItems.set(ciCd.requiredEvidenceItems)
+        }
+        project.tasks.register("assembleMineKotRelease", AssembleMineKotReleaseTask::class.java) { task ->
+            task.group = "build"
+            task.description = "Creates verified MineKot release bundle and checksums."
+            task.artifactsDirectory.set(ciCd.artifactsDirectory)
+            task.expectedArtifacts.set(ciCd.expectedArtifacts)
+            task.bundleDirectory.set(ciCd.releaseBundleDirectory)
+        }
+        project.tasks.register(
+            "verifyMineKotRemotePublication",
+            VerifyMineKotRemotePublicationTask::class.java,
+        ) { task ->
+            task.group = "verification"
+            task.description = "Rejects partial remote MineKot Maven publications."
+            task.repositoryUrl.set(project.providers.gradleProperty("mineKotCiCdRepositoryUrl"))
+            task.expectedPaths.set(
+                project.providers.gradleProperty("mineKotCiCdRemotePaths").map { value ->
+                    value.split(',').map(String::trim).filter(String::isNotEmpty)
+                },
+            )
+            task.username.set(project.providers.environmentVariable("MINEKOT_MAVEN_USERNAME"))
+            task.password.set(project.providers.environmentVariable("MINEKOT_MAVEN_PASSWORD"))
+            task.reportFile.set(ciCd.reportDirectory.file("remote-publication.json"))
+        }
+        project.tasks.register("stageMineKotPublication") { task ->
+            task.group = "publishing"
+            task.description = "Stages selected MineKot Maven publications in the configured static repository."
+            task.dependsOn(
+                ciCd.publicationProjects.map { paths ->
+                    paths.map { path -> "${path}:publishMavenJavaPublicationToStaticRepository" }
+                },
+            )
+        }
+        project.tasks.register("publishMineKotPublication") { task ->
+            task.group = "publishing"
+            task.description = "Publishes selected MineKot Maven publications to the MineKot repository."
+            task.dependsOn(
+                ciCd.publicationProjects.map { paths ->
+                    paths.map { path -> "${path}:publishMavenJavaPublicationToMinekotRepository" }
+                },
+            )
+        }
     }
 
     private fun configureRepositories(project: Project, repositories: RepositoriesFeatureBlock) {
@@ -338,7 +432,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
                     repositories.maven { repository ->
                         repository.name = "minekot"
                         repository.url = URI.create(
-                            if (project.version.toString().endsWith("SNAPSHOT")) {
+                            if (project.version.toString().isMineKotSnapshotVersion()) {
                                 publishing.snapshotsUrl.get()
                             } else {
                                 publishing.releasesUrl.get()
@@ -646,8 +740,8 @@ class MineKotToolchainPlugin : Plugin<Project> {
 
     private companion object {
         private const val DETEKT_PROVIDER_SERVICE: String = "META-INF/services/dev.detekt.api.RuleSetProvider"
-        private const val DEFAULT_RELEASES_URL = "https://maven.minekot.org/releases"
-        private const val DEFAULT_SNAPSHOTS_URL = "https://maven.minekot.org/snapshots"
+        private const val DEFAULT_RELEASES_URL = "https://maven2.minekot.org/releases"
+        private const val DEFAULT_SNAPSHOTS_URL = "https://maven2.minekot.org/snapshots"
 
         private val adventureModules: List<String> = listOf(
             "adventure-api",
@@ -671,6 +765,8 @@ class MineKotToolchainPlugin : Plugin<Project> {
             action.execute(repositories)
         }
     }
+
+    private fun String.isMineKotSnapshotVersion(): Boolean = endsWith("SNAPSHOT") || "-dev." in this
 
     private fun VersionedFeatureBlock.configureVersionedConventions(
         project: Project,

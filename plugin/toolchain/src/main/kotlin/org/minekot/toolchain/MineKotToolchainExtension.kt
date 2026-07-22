@@ -4,6 +4,7 @@ import org.gradle.api.Action
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import javax.inject.Inject
 
@@ -92,6 +93,11 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
     val lint: LintFeatureBlock = objects.lintFeatureBlock(true)
 
     /**
+     * Root-project CI/CD conventions.
+     */
+    val ciCd: CiCdFeatureBlock = objects.ciCdFeatureBlock(false)
+
+    /**
      * Configures common utilities.
      */
     fun common(action: Action<in RequiredFeatureBlock>) {
@@ -124,6 +130,15 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
      */
     fun shadow(action: Action<in ShadowFeatureBlock>) {
         action.execute(shadow)
+    }
+
+    /**
+     * Configures root-project CI/CD conventions.
+     *
+     * @param action CI/CD configuration action.
+     */
+    fun ciCd(action: Action<in CiCdFeatureBlock>) {
+        action.execute(ciCd)
     }
 
     /**
@@ -281,6 +296,47 @@ abstract class PublishingFeatureBlock @Inject constructor(objects: ObjectFactory
 }
 
 /**
+ * Root-project CI/CD convention options.
+ */
+abstract class CiCdFeatureBlock @Inject constructor(objects: ObjectFactory) : FeatureBlock(objects) {
+    /** Tag prefix used for releases. */
+    val tagPrefix: Property<String> = objects.property(String::class.java)
+
+    /** Supported target versions emitted to CI. */
+    val supportedVersions: ListProperty<String> = objects.listProperty(String::class.java)
+
+    /** Allowed changelog fragment categories. */
+    val changelogCategories: ListProperty<String> = objects.listProperty(String::class.java)
+
+    /** Expected release artifact file names. */
+    val expectedArtifacts: ListProperty<String> = objects.listProperty(String::class.java)
+
+    /** Required stable-release evidence checklist identifiers. */
+    val requiredEvidenceItems: ListProperty<String> = objects.listProperty(String::class.java)
+
+    /** Project paths whose Maven publications form the supported library set. */
+    val publicationProjects: ListProperty<String> = objects.listProperty(String::class.java)
+
+    /** Directory containing unreleased changelog fragments. */
+    val fragmentsDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /** Checked-in full changelog file. */
+    val changelogFile: RegularFileProperty = objects.fileProperty()
+
+    /** Directory containing checked-in stable-release evidence. */
+    val evidenceDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /** Directory containing release artifacts collected by CI. */
+    val artifactsDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /** Verified release bundle output directory. */
+    val releaseBundleDirectory: DirectoryProperty = objects.directoryProperty()
+
+    /** CI/CD report output directory. */
+    val reportDirectory: DirectoryProperty = objects.directoryProperty()
+}
+
+/**
  * Shadow JAR convention options.
  */
 abstract class ShadowFeatureBlock @Inject constructor(objects: ObjectFactory) {
@@ -383,6 +439,24 @@ private fun ObjectFactory.shadowFeatureBlock(): ShadowFeatureBlock =
         enabled.convention(false)
         classifier.convention("all")
         mergeServiceFiles.convention(true)
+    }
+
+private fun ObjectFactory.ciCdFeatureBlock(enabled: Boolean): CiCdFeatureBlock =
+    newInstance(CiCdFeatureBlock::class.java).apply {
+        this.enabled.convention(enabled)
+        tagPrefix.convention("v")
+        changelogCategories.convention(
+            listOf(
+                "breaking",
+                "dependency",
+                "deprecation",
+                "documentation",
+                "feature",
+                "fix",
+                "internal",
+                "security",
+            ),
+        )
     }
 
 private fun ObjectFactory.versionedFeatureBlock(enabled: Boolean, version: String): VersionedFeatureBlock =

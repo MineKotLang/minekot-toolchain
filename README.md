@@ -45,9 +45,29 @@ minekotToolchain.toolchainVersion=x.y.z
 minekotToolchain.dependencyGroup=org.minekot
 minekotToolchain.build.javaVersion=21
 minekotToolchain.serialization.libraryVersion=1.11.0
-minekotToolchain.repositories.releasesUrl=https://maven.minekot.org/releases
-minekotToolchain.repositories.snapshotsUrl=https://maven.minekot.org/snapshots
+minekotToolchain.repositories.releasesUrl=https://maven2.minekot.org/releases
+minekotToolchain.repositories.snapshotsUrl=https://maven2.minekot.org/snapshots
 ```
+
+## CI/CD
+
+Root projects can opt into typed CI/CD tasks. Feature stays disabled by default and fails when enabled on a subproject.
+
+```kotlin
+minekotToolchain {
+    ciCd {
+        enabled.set(true)
+        supportedVersions.set(listOf("1.21.8", "1.21.9"))
+        publicationProjects.set(listOf(":api", ":core"))
+        expectedArtifacts.set(listOf("paper.jar", "velocity.jar"))
+        requiredEvidenceItems.set(listOf("fabric-1.21.8", "neoforge-1.21.8"))
+    }
+}
+```
+
+`writeMineKotCiMetadata` emits stable JSON for workflow matrices. `verifyMineKotChanges` validates typed Markdown fragments. `prepareMineKotRelease` folds fragments into `CHANGELOG.md`. `verifyMineKotRelease` enforces SemVer tags, protected-branch head, and stable evidence. `assembleMineKotRelease` creates exact artifact bundle, JSON manifest, and `SHA256SUMS`. `verifyMineKotRemotePublication` rejects partial Maven versions. `stageMineKotPublication` and `publishMineKotPublication` target only configured projects.
+
+Versions ending in `-SNAPSHOT` or containing `-dev.` publish to snapshot repository. Immutable CI versions should use `<base>-dev.<run>.<commit>` so staged and remote Maven paths remain identical.
 
 ## Libraries
 
