@@ -54,7 +54,7 @@ jobs:
         run: sed -i "s/^kotlin = .*/kotlin = \"2.4.0\"/" gradle/libs.versions.toml
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v4.37.3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -66,6 +66,6 @@ jobs:
           --no-configuration-cache --no-build-cache
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@v4.37.3
         with:
           category: /language:${{ matrix.language }}
