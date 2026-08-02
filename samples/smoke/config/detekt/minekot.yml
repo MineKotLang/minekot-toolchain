@@ -17,8 +17,13 @@ minekot:
   ResultHandling:
     active: true
   KotlinxPreference:
+    active: false
+  ResolvedApiPreference:
     active: true
   TrailingComma:
+    active: true
+    autoCorrect: true
+  LineWrapping:
     active: true
     autoCorrect: true
   ForEachPreference:
@@ -28,7 +33,6 @@ minekot:
     autoCorrect: true
   ImportPolicy:
     active: true
-    autoCorrect: true
   SourceFilePolicy:
     active: true
     autoCorrect: true
@@ -36,7 +40,7 @@ minekot:
     active: true
     autoCorrect: true
   ExplicitScopeInNestedScope:
-    active: false
+    active: true
 
 style:
   MagicNumber:

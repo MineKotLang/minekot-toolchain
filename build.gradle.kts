@@ -38,26 +38,42 @@ val artifactIds = mapOf(
     ":libraries:adventure:minekot-adv-minimessage" to "minekot-adv-minimessage",
 )
 
-val check = tasks.register("check") {
-    group = "verification"
-    description = "Runs checks for every MineKot toolchain subproject."
-    dependsOn(subprojects.map { subproject -> "${subproject.path}:check" })
-    outputs.upToDateWhen { false }
-    doLast {}
+tasks {
+    val check = register("check") {
+        group = "verification"
+        description = "Runs checks for every MineKot toolchain subproject."
+        dependsOn(subprojects.map { subproject -> "${subproject.path}:check" })
+        finalizedBy("mineKotSmokeTest")
+        outputs.upToDateWhen { false }
+        doLast {}
+    }
+
+    val mineKotSmokeTest = register<Exec>("mineKotSmokeTest") {
+        group = "verification"
+        description = "Runs the standalone MineKot plugin smoke project."
+        mustRunAfter(check)
+        workingDir = layout.projectDirectory.dir("samples/smoke").asFile
+        commandLine(layout.projectDirectory.file("gradlew").asFile.absolutePath, "mineKotSmokeTest", "--no-daemon")
+    }
 }
 
-tasks.register<Exec>("mineKotSmokeTest") {
-    group = "verification"
-    description = "Runs the standalone MineKot plugin smoke project."
-    mustRunAfter(check)
-    workingDir = layout.projectDirectory.dir("samples/smoke").asFile
-    commandLine(layout.projectDirectory.file("gradlew").asFile.absolutePath, "mineKotSmokeTest", "--no-daemon")
+allprojects {
+    group = rootProject.group
+    version = rootProject.version
+
+    tasks {
+        listOf(
+            Test::class.java,
+        ).forEach { taskClass ->
+            withType(taskClass).configureEach {
+                outputs.upToDateWhen { false }
+            }
+        }
+    }
 }
 
 subprojects {
     pluginManager.apply(BasePlugin::class.java)
-    group = rootProject.group
-    version = rootProject.version
 
     tasks.matching { task -> task.name == "check" }.configureEach {
         outputs.upToDateWhen { false }
@@ -66,7 +82,7 @@ subprojects {
 
     pluginManager.withPlugin("base") {
         extensions.configure<BasePluginExtension> {
-            archivesName.set(artifactIds[path] ?: name)
+            archivesName = artifactIds[path] ?: name
         }
     }
 
@@ -81,8 +97,8 @@ subprojects {
 
         tasks.withType<KotlinCompile>().configureEach {
             compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_21)
-                allWarningsAsErrors.set(false)
+                jvmTarget = JvmTarget.JVM_21
+                allWarningsAsErrors = false
             }
         }
 
@@ -131,19 +147,42 @@ subprojects {
 
             publications.withType<MavenPublication>().configureEach {
                 pom {
-                    name.set(project.name)
-                    description.set("MineKot toolchain artifact ${project.path}")
-                    url.set("https://github.com/MineKotLang/minekot-toolchain")
+                    name = project.name
+                    description = "MineKot toolchain artifact ${project.path}"
+                    url = "https://github.com/MineKotLang/minekot-toolchain"
                     licenses {
                         license {
-                            name.set("Apache License 2.0")
-                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                            name = "Apache License 2.0"
+                            url = "https://www.apache.org/licenses/LICENSE-2.0"
                         }
                     }
+                    /**
+                     * Configuration for the sponsoring organization of the MineKot toolchain.
+                     *
+                     * @property Pair.first The name of the organization.
+                     * @property Pair.second The URL of the organization.
+                     */
+                    val orgConfig = Pair("MineKot", "https://foss.minekot.org")
+                    organization {
+                        name = orgConfig.first
+                        url = orgConfig.second
+                    }
                     developers {
-                        developer {
-                            id.set("minekot")
-                            name.set("MineKot Team")
+                        /**
+                         * @property Pair.first The ID of the developer.
+                         * @property Pair.second The name of the developer.
+                         */
+                        val devs = mapOf(
+                            "minekot" to "MineKot Team",
+                            "guavadealer" to "GuavaDealer",
+                        )
+                        devs.forEach { (devId, devName) ->
+                            developer {
+                                id = devId
+                                name = devName
+                                organization = orgConfig.first
+                                organizationUrl = orgConfig.second
+                            }
                         }
                     }
                 }

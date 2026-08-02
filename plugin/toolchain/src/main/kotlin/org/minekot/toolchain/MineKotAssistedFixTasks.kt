@@ -4,16 +4,23 @@ import kotlinx.serialization.json.Json
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import java.security.MessageDigest
+import javax.inject.Inject
 import kotlin.io.path.*
 
 /** Writes assisted-fix candidates and proposed changes without changing source files. */
 @DisableCachingByDefault(because = "Preview depends on dynamic repository source state.")
 abstract class MineKotAssistPreviewTask : DefaultTask() {
+    /** Filesystem service. */
+    @get:Inject
+    abstract val fileSystemOperations: FileSystemOperations
+
     init {
         outputs.upToDateWhen { false }
     }
@@ -61,6 +68,7 @@ abstract class MineKotAssistPreviewTask : DefaultTask() {
     internal companion object {
         const val reportFileName: String = "assisted-fixes.json"
         const val diffFileName: String = "assisted-fixes.diff"
+        const val baselineFileName: String = "assisted-source-baseline.json"
         val assistJson: Json = Json {
             ignoreUnknownKeys = false
             prettyPrint = true
@@ -78,8 +86,12 @@ abstract class MineKotAssistStageTask : MineKotAssistPreviewTask() {
         val document = readRequestDocument()
         val currentPreview = confirmedPreview(document)
         val root = projectDirectory.get().asFile.toPath()
-        val stagingDirectory = reportDirectory.get().asFile.toPath().resolve("staged").createDirectories()
-        project.delete(stagingDirectory.toFile())
+        val reportPath = reportDirectory.get().asFile.toPath()
+        val stagingDirectory = reportPath.resolve("staged").createDirectories()
+        reportPath.resolve(baselineFileName).writeText(
+            assistJson.encodeToString(assistSourceHashes(root)) + "\n",
+        )
+        fileSystemOperations.delete { operation -> operation.delete(stagingDirectory.toFile()) }
         root.walk()
             .filter { path ->
                 path.isRegularFile() && path.extension in setOf("kt", "kts") &&
@@ -134,7 +146,18 @@ abstract class MineKotAssistApplyTask : MineKotAssistStageTask() {
     override fun preview() {
         val currentPreview = confirmedPreview(readRequestDocument())
         val root = projectDirectory.get().asFile.toPath()
-        val stagingDirectory = reportDirectory.get().asFile.toPath().resolve("staged")
+        val reportPath = reportDirectory.get().asFile.toPath()
+        val stagingDirectory = reportPath.resolve("staged")
+        val expectedBaseline = assistJson.decodeFromString<Map<String, String>>(
+            reportPath.resolve(baselineFileName).readText(),
+        )
+        val currentBaseline = assistSourceHashes(root)
+        if (currentBaseline != expectedBaseline) {
+            val changed = (expectedBaseline.keys + currentBaseline.keys)
+                .filter { path -> expectedBaseline[path] != currentBaseline[path] }
+                .sorted()
+            throw GradleException("Repository sources changed during mineKotAssistApply: ${changed.joinToString()}")
+        }
         val replacements = currentPreview.replacements.map { (path, source) ->
             val staged = stagingDirectory.resolve(path.relativeTo(root))
             if (!staged.exists() || staged.readText() != source) {
@@ -151,3 +174,21 @@ abstract class MineKotAssistApplyTask : MineKotAssistStageTask() {
         logger.lifecycle("Applied MineKot assisted-fix plan ${currentPreview.report.planId}.")
     }
 }
+
+private fun assistSourceHashes(root: java.nio.file.Path): Map<String, String> =
+    root.walk()
+        .filter { path ->
+            path.isRegularFile() && path.extension in setOf("kt", "kts") &&
+                    path.relativeTo(root).none { segment ->
+                        segment.name in setOf(".git", ".gradle", ".idea", "build", "out")
+                    }
+        }
+        .associate { path ->
+            path.relativeTo(root).invariantSeparatorsPathString to assistSha256(path.readBytes())
+        }
+        .toSortedMap()
+
+private fun assistSha256(value: ByteArray): String =
+    MessageDigest.getInstance("SHA-256")
+        .digest(value)
+        .joinToString("") { byte -> "%02x".format(byte) }

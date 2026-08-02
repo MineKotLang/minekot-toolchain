@@ -1,20 +1,18 @@
 package org.minekot.toolchain.lint
 
-import dev.detekt.api.Config
-import dev.detekt.api.Entity
-import dev.detekt.api.Rule
-import dev.detekt.api.RuleName
-import dev.detekt.api.internal.AutoCorrectable
+import com.intellij.psi.util.PsiTreeUtil
+import dev.detekt.api.*
+import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.resolution.*
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
- * Requires labeled outer-receiver access for known enclosing-class members used inside lambdas.
+ * Reports resolved implicit outer-receiver access inside nested scopes.
  */
-@AutoCorrectable(since = "2.0.0")
-class ExplicitScopeInNestedScopeRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
-    private val edits: MineKotTextEdits = MineKotTextEdits()
+class ExplicitScopeInNestedScopeRule(config: Config) :
+    Rule(config, "MineKot codestyle rule."),
+    RequiresAnalysisApi {
     private val issue: Issue = Issue(
         id = "ExplicitScopeInNestedScope",
         severity = Severity.Style,
@@ -24,66 +22,50 @@ class ExplicitScopeInNestedScopeRule(config: Config) : Rule(config, "MineKot cod
 
     override val ruleName: RuleName get() = RuleName(issue.id)
 
-    override fun preVisit(root: KtFile) {
-        edits.clear()
+    override fun visitSimpleNameExpression(expression: KtSimpleNameExpression) {
+        super.visitSimpleNameExpression(expression)
+        val nameReference = expression as? KtNameReferenceExpression ?: return
+        inspectReference(nameReference)
     }
 
-    override fun postVisit(root: KtFile) {
-        edits.applyTo(root, autoCorrect)
+    private fun inspectReference(expression: KtNameReferenceExpression) {
+        if (
+            expression.isInsideMineKotFormatterControl() ||
+            !expression.isUnqualified() ||
+            expression.parents.none { parent -> parent is KtLambdaExpression }
+        ) {
+            return
+        }
+        val isOuterReceiverAccess = analyze(expression) {
+            val call = (expression.parent as? KtCallExpression)
+                ?.takeIf { callExpression -> callExpression.calleeExpression == expression }
+                ?.resolveToCall()
+                ?.singleFunctionCallOrNull()
+                ?: expression.resolveToCall()?.singleVariableAccessCall()
+                ?: return@analyze false
+            val receiver = (call.dispatchReceiver ?: call.extensionReceiver).unwrapSmartCast() ?: return@analyze false
+            val nearestLambda = expression.parents.filterIsInstance<KtLambdaExpression>().firstOrNull()
+                ?: return@analyze false
+            val receiverPsi = (receiver as? KaImplicitReceiverValue)?.symbol?.psi ?: call.symbol.psi
+            receiverPsi == null || !PsiTreeUtil.isAncestor(nearestLambda, receiverPsi, false)
+        }
+        if (!isOuterReceiverAccess) {
+            return
+        }
+        report(
+            CodeSmell(
+                issue = issue,
+                entity = Entity.from(expression),
+                message = "Qualify outer receiver member ${expression.getReferencedName()} with an explicit labeled this.",
+            ),
+        )
     }
 
-    override fun visitLambdaExpression(lambdaExpression: KtLambdaExpression) {
-        super.visitLambdaExpression(lambdaExpression)
-        if (lambdaExpression.isInsideMineKotFormatterControl()) {
-            return
+    private fun KaReceiverValue?.unwrapSmartCast(): KaReceiverValue? =
+        when (this) {
+            is KaSmartCastedReceiverValue -> original.unwrapSmartCast()
+            else -> this
         }
-        val containingClasses = lambdaExpression.parents.filterIsInstance<KtClassOrObject>().toList()
-        if (containingClasses.isEmpty()) {
-            return
-        }
-        val shadowedNames = buildSet {
-            lambdaExpression.valueParameters.mapNotNullTo(this) { parameter -> parameter.name }
-            lambdaExpression.collectDescendantsOfType<KtNamedDeclaration>()
-                .mapNotNullTo(this) { declaration -> declaration.name }
-            lambdaExpression.parents.filterIsInstance<KtNamedFunction>().firstOrNull()?.let { function ->
-                function.valueParameters.mapNotNullTo(this) { parameter -> parameter.name }
-                function.bodyExpression
-                    ?.collectDescendantsOfType<KtNamedDeclaration> { declaration ->
-                        declaration.textRange.startOffset < lambdaExpression.textRange.startOffset
-                    }
-                    ?.mapNotNullTo(this) { declaration -> declaration.name }
-            }
-        }
-        lambdaExpression.bodyExpression
-            ?.collectDescendantsOfType<KtNameReferenceExpression> { reference ->
-                reference.parents
-                    .takeWhile { parent -> parent != lambdaExpression }
-                    .none { parent -> parent is KtLambdaExpression }
-            }
-            ?.forEach { reference ->
-                val name = reference.getReferencedName()
-                val receivers = containingClasses.filter { containingClass ->
-                    containingClass.declarations.any { declaration ->
-                        declaration.name == name && (declaration is KtProperty || declaration is KtNamedFunction)
-                    }
-                }
-                val receiverName = receivers.singleOrNull()?.name
-                if (receiverName != null && name !in shadowedNames && reference.isUnqualified()) {
-                    report(
-                        CodeSmell(
-                            issue,
-                            Entity.from(reference),
-                            "Qualify outer member ${name} with this@${receiverName}.",
-                        ),
-                    )
-                    edits.replace(
-                        reference.textRange.startOffset,
-                        reference.textRange.endOffset,
-                        "this@${receiverName}.${name}",
-                    )
-                }
-            }
-    }
 
     private fun KtNameReferenceExpression.isUnqualified(): Boolean {
         val selector = (parent as? KtCallExpression) ?: this

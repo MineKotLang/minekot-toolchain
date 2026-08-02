@@ -36,6 +36,13 @@ val mineKotLibraryFeatureDescriptors: List<MineKotLibraryFeatureDescriptor> = li
         testClass = "org.minekot.kotlin.common.MineKotCommonTest",
     ),
     MineKotLibraryFeatureDescriptor(
+        module = ":libraries:kotlin:minekot-kt-common",
+        feature = "typed-result-boundaries",
+        publicSymbols = listOf("mineKotRunCatching"),
+        dependencyReason = "Typed failure boundaries preserve cancellation and unrelated exceptions.",
+        testClass = "org.minekot.kotlin.common.MineKotCommonTest",
+    ),
+    MineKotLibraryFeatureDescriptor(
         module = ":libraries:kotlin:minekot-kt-io",
         feature = "paths-resources",
         publicSymbols = listOf("writeMineKotTextAtomic", "copyMineKotDirectoryMissingOnly"),
@@ -166,6 +173,18 @@ val mineKotLibraryFeatureDescriptors: List<MineKotLibraryFeatureDescriptor> = li
         feature = "kotlinpoet-shapes",
         publicSymbols = listOf("renderMineKotEnum", "renderMineKotSealedInterface", "MineKotGeneratedEnum"),
         dependencyReason = "Common generated shapes replace handwritten string codegen.",
+        testClass = "org.minekot.codegen.core.MineKotCodegenTest",
+    ),
+    MineKotLibraryFeatureDescriptor(
+        module = ":libraries:codegen:minekot-codegen-core",
+        feature = "kotlinpoet-expressions",
+        publicSymbols = listOf(
+            "MineKotKotlinExpression",
+            "MineKotKotlinStatement",
+            "renderMineKotCode",
+            "renderMineKotExpression",
+        ),
+        dependencyReason = "Typed Kotlin syntax models replace raw source snippets in generators.",
         testClass = "org.minekot.codegen.core.MineKotCodegenTest",
     ),
     MineKotLibraryFeatureDescriptor(

@@ -4,15 +4,12 @@ import dev.detekt.api.Config
 import dev.detekt.api.Entity
 import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
-import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.*
 
 /**
  * Flags obvious unsafe Result handling.
  */
-@AutoCorrectable(since = "2.0.0")
 class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
-    private val edits: MineKotTextEdits = MineKotTextEdits()
     private val issue: Issue = Issue(
         id = "ResultHandling",
         severity = Severity.Style,
@@ -22,32 +19,19 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
 
     override val ruleName: RuleName get() = RuleName(issue.id)
 
-    override fun preVisit(root: KtFile) {
-        edits.clear()
-    }
-
-    override fun postVisit(root: KtFile) {
-        edits.applyTo(root, autoCorrect)
-    }
-
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
         when (expression.calleeExpression?.text) {
             "getOrThrow" -> reportFinding(
                 expression = expression,
-                message = "Avoid unsafe getOrThrow; use getOrElse, getOrNull, or explicit handling.",
+                message = "Avoid unsafe getOrThrow; transform, recover, or handle the Result explicitly.",
                 enabled = expression.isKnownResultAccess(),
             )
 
             "runCatching" -> if (expression.isIgnoredRunCatching() && !expression.isInsideMineKotFormatterControl()) {
                 reportFinding(
                     expression,
-                    "Handle runCatching Result with onSuccess, onFailure, getOrElse, or getOrNull.",
-                )
-                edits.replace(
-                    expression.textRange.endOffset,
-                    expression.textRange.endOffset,
-                    ".getOrNull()",
+                    "Handle this Result explicitly; do not discard or silently convert its failure.",
                 )
             }
         }
@@ -90,10 +74,7 @@ class ResultHandlingRule(config: Config) : Rule(config, "MineKot codestyle rule.
         }
 
     private fun KtBlockExpression.usesLastStatementAsValue(expression: KtExpression): Boolean {
-        if (statements.lastOrNull() != expression) {
-            return false
-        }
-        return when (val container = parent) {
+        return statements.lastOrNull() == expression && when (val container = parent) {
             is KtFunctionLiteral -> !container.hasUnitReturningOwner()
             is KtIfExpression -> container.isResultConsumed()
             is KtTryExpression -> container.isResultConsumed()

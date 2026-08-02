@@ -8,13 +8,13 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 
 /**
- * Requires KDoc on methods and complicated declarations.
+ * Requires KDoc for public API and syntactically non-obvious internal properties.
  */
 class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
     private val issue: Issue = Issue(
         id = "MissingKDoc",
         severity = Severity.Style,
-        description = "MineKot methods and complicated declarations require KDoc.",
+        description = "MineKot API contracts and non-obvious internal state require useful KDoc.",
         debt = Debt.FIVE_MINS,
     )
     override val ruleName: RuleName get() = RuleName(issue.id)
@@ -27,7 +27,6 @@ class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
     override fun visitNamedFunction(function: KtNamedFunction) {
         super.visitNamedFunction(function)
         reportIfMissingKDoc(function, "function")
-        reportIfIncompleteKDoc(function)
     }
 
     override fun visitProperty(property: KtProperty) {
@@ -43,20 +42,14 @@ class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
     }
 
     private fun reportIfMissingKDoc(declaration: KtDeclaration, declarationKind: String) {
-        val requiresKDoc = when (declaration) {
-            is KtNamedFunction -> declaration.requiresMethodKDoc()
-            is KtProperty -> declaration.requiresVariableKDoc()
-            is KtParameter -> declaration.requiresVariableKDoc()
-            else -> declaration.requiresKDoc()
-        }
-        if (declaration.hasKDoc() || !requiresKDoc) {
+        if (declaration.hasKDoc() || !declaration.requiresContractKDoc()) {
             return
         }
         report(
             CodeSmell(
                 issue = issue,
                 entity = Entity.from(declaration),
-                message = "Add KDoc to this public ${declarationKind}.",
+                message = "Add KDoc that explains this ${declarationKind} contract.",
             ),
         )
     }
@@ -74,143 +67,36 @@ class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
         return Regex("@property\\s+${Regex.escape(propertyName)}(?:\\s|$)").containsMatchIn(classKDoc)
     }
 
-    private fun reportIfIncompleteKDoc(function: KtNamedFunction) {
-        if (!function.requiresMethodKDoc()) {
-            return
-        }
-        val kDoc = function.docComment?.text ?: return
-        val undocumentedParameters = function.valueParameters.mapNotNull { parameter ->
-            parameter.name?.takeUnless { parameterName ->
-                Regex("@param\\s+${Regex.escape(parameterName)}(?:\\s|$)").containsMatchIn(kDoc)
-            }
-        }
-        val returnsValue = function.returnsValue()
-        val requiresReturnTag = returnsValue &&
-                !Regex("@return(?:\\s|$)").containsMatchIn(kDoc)
-        if (undocumentedParameters.isEmpty() && !requiresReturnTag) {
-            return
-        }
-        val missingTags = buildList {
-            undocumentedParameters.forEach { parameterName -> add("@param ${parameterName}") }
-            if (requiresReturnTag) {
-                add("@return")
-            }
-        }
-        report(
-            CodeSmell(
-                issue = issue,
-                entity = Entity.from(function),
-                message = "Complete this function KDoc with ${missingTags.joinToString()}.",
-            ),
-        )
-    }
-
-    private fun KtDeclaration.generatedKDoc(insertionOffset: Int): String {
-        val indentation = sourceIndentation()
-        val description = when (this) {
-            is KtNamedFunction -> "Performs ${name.toDocumentationWords()}."
-            is KtProperty -> "Values used by ${name.toDocumentationWords()}."
-            is KtObjectDeclaration -> "Provides ${name.toDocumentationWords()}."
-            else -> "Represents ${name.toDocumentationWords()}."
-        }
-        val tags = when (this) {
-            is KtNamedFunction -> buildList {
-                valueParameters.mapNotNull(KtParameter::getName).forEach { parameterName ->
-                    val parameterDescription = parameterName.toDocumentationWords().replaceFirstChar(Char::uppercase)
-                    add("@param ${parameterName} ${parameterDescription} value.")
-                }
-                if (returnsValue()) {
-                    add("@return Result produced by ${name.toDocumentationWords()}.")
-                }
-            }
-
-            else -> emptyList()
-        }
-        val sourcePrefix = containingKtFile.text.take(insertionOffset)
-        val previousToken = sourcePrefix.trimEnd().lastOrNull()
-        val paragraphSeparator = if (
-            sourcePrefix.isNotEmpty() &&
-            !sourcePrefix.endsWith("\n\n") &&
-            previousToken != '{'
+    private fun KtDeclaration.requiresContractKDoc(): Boolean {
+        if (
+            this is KtClassOrObject && name == null ||
+            hasModifier(KtTokens.PRIVATE_KEYWORD) ||
+            hasModifier(KtTokens.OVERRIDE_KEYWORD) ||
+            isLocalDeclaration() ||
+            hasNonPublicContainer()
         ) {
-            "\n"
-        } else {
-            ""
+            return false
         }
-        return buildString {
-            append(paragraphSeparator)
-            append("${indentation}/**\n")
-            append("${indentation} * ${description}\n")
-            if (tags.isNotEmpty()) {
-                append("${indentation} *\n")
-                tags.forEach { tag -> append("${indentation} * ${tag}\n") }
+        if (hasModifier(KtTokens.INTERNAL_KEYWORD)) {
+            return this is KtCallableDeclaration && hasComplicatedType()
+        }
+        return true
+    }
+
+    private fun KtDeclaration.isLocalDeclaration(): Boolean =
+        parent is KtBlockExpression ||
+                parent is KtNamedFunction ||
+                parent is KtProperty ||
+                generateSequence(parent) { element -> element.parent }
+                    .any { element -> element is KtBlockExpression || element is KtNamedFunction }
+
+    private fun KtDeclaration.hasNonPublicContainer(): Boolean =
+        generateSequence(parent) { element -> element.parent }
+            .filterIsInstance<KtClassOrObject>()
+            .any { container ->
+                container.hasModifier(KtTokens.PRIVATE_KEYWORD) ||
+                        container.hasModifier(KtTokens.INTERNAL_KEYWORD)
             }
-            append("${indentation} */\n${indentation}")
-        }
-    }
-
-    private fun KtNamedFunction.returnsValue(): Boolean =
-        typeReference?.text !in unitReturnTypes || typeReference == null && !hasBlockBody()
-
-    private fun KtDeclaration.sourceIndentation(): String {
-        val source = containingKtFile.text
-        val anchorOffset = (this as? KtNamedDeclaration)?.nameIdentifier?.textRange?.startOffset
-            ?: textRange.startOffset
-        val lineStart = source.lastIndexOf('\n', anchorOffset - 1) + 1
-        return source.substring(lineStart, anchorOffset).takeWhile(Char::isWhitespace)
-    }
-
-    private fun KtDeclaration.documentationInsertion(): DocumentationInsertion {
-        val source = containingKtFile.text
-        val anchorOffset = (this as? KtNamedDeclaration)?.nameIdentifier?.textRange?.startOffset
-            ?: textRange.startOffset
-        val lineStartOffset = source.lastIndexOf('\n', anchorOffset - 1) + 1
-        val relativeOffset = source.substring(lineStartOffset, anchorOffset)
-            .indexOfFirst { character -> !character.isWhitespace() }
-        val declarationOffset = if (relativeOffset < 0) lineStartOffset else lineStartOffset + relativeOffset
-        return DocumentationInsertion(lineStartOffset, declarationOffset)
-    }
-
-    private fun String.withMissingTags(
-        indentation: String,
-        missingTags: List<String>,
-    ): String {
-        val content = removeSuffix("*/").trimEnd()
-        val separator = if (content.lines().lastOrNull()?.trim() == "*") "" else "\n${indentation} *"
-        val tags = missingTags.joinToString(separator = "\n") { tag -> "${indentation} * ${tag}" }
-        return "${content}${separator}\n${tags}\n${indentation} */"
-    }
-
-    private fun String?.toDocumentationWords(): String =
-        this
-            ?.replace(Regex("([a-z0-9])([A-Z])"), "\$1 \$2")
-            ?.replace('_', ' ')
-            ?.lowercase()
-            ?: "declaration"
-
-    private fun KtDeclaration.requiresKDoc(): Boolean =
-        (this !is KtClassOrObject || name != null) &&
-                parent !is KtNamedFunction &&
-                parent !is KtProperty &&
-                parent !is KtBlockExpression &&
-                !hasModifier(KtTokens.PRIVATE_KEYWORD) &&
-                !hasModifier(KtTokens.INTERNAL_KEYWORD) &&
-                !hasModifier(KtTokens.OVERRIDE_KEYWORD) &&
-                !hasNonPublicContainer()
-
-    private fun KtNamedFunction.requiresMethodKDoc(): Boolean =
-        parent !is KtNamedFunction &&
-                parent !is KtProperty &&
-                parent !is KtBlockExpression
-
-    private fun KtCallableDeclaration.requiresVariableKDoc(): Boolean =
-        hasComplicatedType() &&
-                parent !is KtNamedFunction &&
-                parent !is KtProperty &&
-                parent !is KtBlockExpression &&
-                generateSequence(parent) { element -> element.parent }.none { element ->
-                    element is KtBlockExpression || element is KtNamedFunction
-                }
 
     private fun KtCallableDeclaration.hasComplicatedType(): Boolean {
         val type = typeReference?.text ?: (this as? KtProperty)?.initializer?.text ?: return false
@@ -221,20 +107,7 @@ class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
         }
     }
 
-    private fun KtDeclaration.hasNonPublicContainer(): Boolean =
-        generateSequence(parent) { element -> element.parent }
-            .any { element ->
-                element is KtBlockExpression ||
-                        element is KtNamedFunction ||
-                        element is KtClassOrObject &&
-                        (
-                                element.hasModifier(KtTokens.PRIVATE_KEYWORD) ||
-                                        element.hasModifier(KtTokens.INTERNAL_KEYWORD)
-                                )
-            }
-
     private companion object {
-        private val unitReturnTypes: Set<String?> = setOf(null, "Unit", "kotlin.Unit")
         private val inferredComplicatedTypePattern: Regex = Regex(
             "\\b(?:empty(?:List|Map|Set)|mutable(?:List|Map|Set)Of|(?:array|list|map|sequence|set)Of)\\s*(?:<|\\()",
         )
@@ -254,8 +127,3 @@ class MissingKDocRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
         )
     }
 }
-
-private data class DocumentationInsertion(
-    val lineStartOffset: Int,
-    val declarationOffset: Int,
-)

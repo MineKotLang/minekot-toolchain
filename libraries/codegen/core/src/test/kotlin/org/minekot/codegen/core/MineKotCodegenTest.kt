@@ -1,5 +1,6 @@
 package org.minekot.codegen.core
 
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.STRING
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -79,5 +80,67 @@ class MineKotCodegenTest {
 
         assertTrue(enumFile.indexOf("ALPHA") < enumFile.indexOf("ZETA"))
         assertTrue(sealedFile.contains("sealed interface Event"))
+    }
+
+    @Test
+    fun `typed expression renderer emits nested calls without source snippets`() {
+        val service = MineKotKotlinName("service")
+        val handler = MineKotKotlinName("handler")
+        val event = MineKotKotlinName("event")
+        val code = renderMineKotCode(
+            listOf(
+                MineKotExpressionStatement(
+                    MineKotCall(
+                        target = MineKotMemberAccess(MineKotReference(service), MineKotKotlinName("register")),
+                        arguments = listOf(MineKotClassLiteral(ClassName("org.example", "ExampleEvent"))),
+                        namedArguments = mapOf(handler to MineKotReference(event)),
+                    ),
+                ),
+            ),
+        ).toString()
+
+        assertEquals("service.register(org.example.ExampleEvent::class, handler = event)\n", code)
+    }
+
+    @Test
+    fun `typed statement renderer handles variables branches and labeled returns`() {
+        val event = MineKotKotlinName("event")
+        val handler = MineKotKotlinName("handler")
+        val register = MineKotKotlinName("register")
+        val eventType = ClassName("org.example", "ExampleEvent")
+        val code = renderMineKotCode(
+            listOf(
+                MineKotVariable(
+                    event,
+                    MineKotElvis(
+                        MineKotCall(MineKotReference(handler)),
+                        MineKotLabeledReturn(register),
+                    ),
+                ),
+                MineKotIf(
+                    MineKotIsCheck(MineKotReference(event), eventType),
+                    listOf(
+                        MineKotExpressionStatement(
+                            MineKotCall(MineKotReference(handler), listOf(MineKotReference(event))),
+                        ),
+                    ),
+                ),
+            ),
+        ).toString()
+
+        assertEquals(
+            "val event = handler() ?: return@register\n" +
+                    "if (event is org.example.ExampleEvent) {\n" +
+                    "  handler(event)\n" +
+                    "}\n",
+            code,
+        )
+    }
+
+    @Test
+    fun `typed literals retain Kotlin numeric suffixes`() {
+        assertEquals("0L", renderMineKotExpression(MineKotNumericLiteral(0, MineKotNumericKind.LONG)).toString())
+        assertEquals("0.0f", renderMineKotExpression(MineKotNumericLiteral(0, MineKotNumericKind.FLOAT)).toString())
+        assertEquals("null", renderMineKotExpression(MineKotNullLiteral).toString())
     }
 }

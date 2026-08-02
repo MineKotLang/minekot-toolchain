@@ -4,8 +4,10 @@ import dev.detekt.api.Config
 import dev.detekt.api.Finding
 import dev.detekt.api.Rule
 import dev.detekt.api.modifiedText
+import dev.detekt.test.utils.KotlinAnalysisApiEngine
 import dev.detekt.test.utils.compileContentForTest
 import org.jetbrains.kotlin.config.*
+import java.nio.file.Path
 
 internal fun Rule.lint(
     content: String,
@@ -15,6 +17,26 @@ internal fun Rule.lint(
         root = compileContentForTest(content, filename),
         languageVersionSettings = mineKotLanguageVersionSettings(),
     )
+
+internal fun Rule.lintWithAnalysis(
+    content: String,
+    dependencyCodes: List<String> = emptyList(),
+    jvmClasspathRoots: List<Path> = emptyList(),
+    allowCompilationErrors: Boolean = false,
+): List<Finding> =
+    KotlinAnalysisApiEngine().use { engine ->
+        val root = engine.compile(
+            code = content,
+            dependencyCodes = dependencyCodes,
+            jvmClasspathRoots = (
+                    listOf(CharRange::class.java.protectionDomain.codeSource.location.toURI().let(Path::of)) +
+                            jvmClasspathRoots
+                    ).distinct(),
+            allowCompilationErrors = allowCompilationErrors,
+            languageVersionSettings = mineKotLanguageVersionSettings(),
+        )
+        visitFile(root, mineKotLanguageVersionSettings())
+    }
 
 internal fun Rule.lintAndCorrect(
     content: String,
@@ -53,8 +75,8 @@ internal val mineKotAutoCorrectConfig: Config = object : Config {
 
 private fun mineKotLanguageVersionSettings(): LanguageVersionSettingsImpl =
     LanguageVersionSettingsImpl(
-        languageVersion = LanguageVersion.LATEST_STABLE,
-        apiVersion = ApiVersion.LATEST_STABLE,
+        languageVersion = LanguageVersion.KOTLIN_2_4,
+        apiVersion = ApiVersion.KOTLIN_2_4,
         analysisFlags = mapOf(AnalysisFlags.explicitApiMode to ExplicitApiMode.DISABLED),
         specificFeatures = emptyMap(),
     )

@@ -11,6 +11,9 @@ dependencies {
     testImplementation(libs.detekt.test.utils)
     testRuntimeOnly(libs.detekt.psi.utils)
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.adventure.api)
+    testImplementation(libs.adventure.minimessage)
+    testImplementation(project(":libraries:adventure:minekot-adv-minimessage"))
 }
 
 publishing {

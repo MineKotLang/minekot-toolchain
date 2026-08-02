@@ -18,6 +18,7 @@
           <option value="http://maven.apache.org/xsd/" />
           <option value="http://primefaces.org/ui" />
           <option value="http://schema.cloudfoundry.org/spring/" />
+          <option value="http://schemas.android.com" />
           <option value="http://schemas.xmlsoap.org/" />
           <option value="http://tiles.apache.org/" />
           <option value="http://www.ibm.com/webservices/xsd" />

@@ -2,6 +2,8 @@ package org.minekot.kotlin.common
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 
 class MineKotCommonTest {
     enum class Mode {
@@ -21,6 +23,46 @@ class MineKotCommonTest {
     @Test
     fun `nullable conversion creates successful result`() {
         assertEquals("minekot", "minekot".toResult("missing").getOrThrow())
+    }
+
+    @Test
+    fun `typed catching captures only declared recoverable failures`() {
+        val result = mineKotRunCatching(IOException::class) {
+            throw IOException("recoverable")
+        }
+
+        assertTrue(result.exceptionOrNull() is IOException)
+        assertThrows(IllegalStateException::class.java) {
+            mineKotRunCatching(IOException::class) {
+                throw IllegalStateException("undeclared")
+            }
+        }
+    }
+
+    @Test
+    fun `typed catching preserves cancellation and fatal failures`() {
+        assertThrows(CancellationException::class.java) {
+            mineKotRunCatching(Exception::class) {
+                throw CancellationException("cancelled")
+            }
+        }
+        assertThrows(LinkageError::class.java) {
+            mineKotRunCatching(Throwable::class) {
+                throw LinkageError("fatal")
+            }
+        }
+    }
+
+    @Test
+    fun `typed catching requires a recoverable exception type before execution`() {
+        var executed = false
+
+        assertThrows(IllegalArgumentException::class.java) {
+            mineKotRunCatching {
+                executed = true
+            }
+        }
+        assertFalse(executed)
     }
 
     @Test

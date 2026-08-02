@@ -1,9 +1,6 @@
 package org.minekot.toolchain.lint
 
-import dev.detekt.api.Config
-import dev.detekt.api.Rule
-import dev.detekt.api.RuleSetId
-import dev.detekt.api.RuleSetProvider
+import dev.detekt.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DynamicTest
@@ -25,8 +22,26 @@ class MineKotRulesTest {
         mineKotRuleDescriptors.forEach { descriptor ->
             assertTrue(descriptor.id.isNotBlank())
             assertTrue(descriptor.codestyleSection.isNotBlank())
+            assertEquals(descriptor.defaultActive, descriptor.reportsByDefault)
             assertEquals(descriptor.id, descriptor.factory(Config.empty).ruleName.value)
         }
+        val deprecatedRule = descriptorsById.getValue("KotlinxPreference")
+        assertEquals(MineKotRuleDisposition.DEPRECATED, deprecatedRule.disposition)
+        assertEquals("ResolvedApiPreference", deprecatedRule.replacementId)
+        assertEquals(false, deprecatedRule.defaultActive)
+        assertEquals(MineKotCorrectionMode.DISABLED, deprecatedRule.correctionMode)
+        assertEquals(
+            setOf(
+                "CoroutinePreference",
+                "ExplicitScopeInNestedScope",
+                "MiniMessageText",
+                "ResolvedApiPreference",
+            ),
+            mineKotRuleDescriptors.filter(MineKotRuleDescriptor::requiresAnalysisApi)
+                .mapTo(mutableSetOf()) { descriptor ->
+                    descriptor.id
+                },
+        )
     }
 
     @Test
@@ -44,11 +59,21 @@ class MineKotRulesTest {
             val factory = rules.entries.single { entry -> entry.key.value == ruleId }.value
             listOf(
                 DynamicTest.dynamicTest("${ruleId} provider flags canonical violation") {
-                    val findings = factory(Config.empty).lint(ruleCase.violatingSource, ruleCase.filename)
+                    val rule = factory(Config.empty)
+                    val findings = if (rule is RequiresAnalysisApi) {
+                        rule.lintWithAnalysis(ruleCase.violatingSource, allowCompilationErrors = true)
+                    } else {
+                        rule.lint(ruleCase.violatingSource, ruleCase.filename)
+                    }
                     assertTrue(findings.isNotEmpty(), "${ruleId} should flag canonical violation")
                 },
                 DynamicTest.dynamicTest("${ruleId} provider accepts canonical clean source") {
-                    val findings = factory(Config.empty).lint(ruleCase.cleanSource, ruleCase.filename)
+                    val rule = factory(Config.empty)
+                    val findings = if (rule is RequiresAnalysisApi) {
+                        rule.lintWithAnalysis(ruleCase.cleanSource, allowCompilationErrors = true)
+                    } else {
+                        rule.lint(ruleCase.cleanSource, ruleCase.filename)
+                    }
                     assertEquals(0, findings.size, "${ruleId}: ${findings.joinToString { it.message }}")
                 },
             )
@@ -129,6 +154,56 @@ class MineKotRulesTest {
             expectedFindings = 0,
             source = "fun run(): Result<Unit> = runCatching { println(\"MineKot\") }",
         ),
+        RuleCase(
+            name = "accepts typed recovery with a fallback",
+            expectedFindings = 0,
+            source =
+                """
+                fun load(): String = try {
+                    error("boom")
+                } catch (exception: java.io.IOException) {
+                    "fallback"
+                }
+                """,
+        ),
+        RuleCase(
+            name = "flags broad recovery without cancellation preservation",
+            expectedFindings = 1,
+            source =
+                """
+                fun load(): String = try {
+                    error("boom")
+                } catch (exception: Exception) {
+                    "fallback"
+                }
+                """,
+        ),
+        RuleCase(
+            name = "accepts broad boundary with explicit cancellation rethrow",
+            expectedFindings = 0,
+            source =
+                """
+                fun load(): String = try {
+                    error("boom")
+                } catch (exception: Exception) {
+                    if (exception is kotlin.coroutines.cancellation.CancellationException) throw exception
+                    "fallback"
+                }
+                """,
+        ),
+        RuleCase(
+            name = "accepts typed MineKot Result boundary implementation",
+            expectedFindings = 0,
+            source =
+                """
+                fun mineKotRunCatching(): Result<Unit> = try {
+                    Result.success(Unit)
+                } catch (failure: Throwable) {
+                    if (failure is Error) throw failure
+                    Result.failure(failure)
+                }
+                """,
+        ),
     )
 
     @TestFactory
@@ -147,7 +222,7 @@ class MineKotRulesTest {
         RuleCase(
             name = "accepts an escaped dollar sign",
             expectedFindings = 0,
-            source = "fun price(): String = \"\\${'$'}100\"",
+            source = "fun price(): String = \"\\$100\"",
         ),
         RuleCase(
             name = "accepts plain strings",
@@ -160,19 +235,19 @@ class MineKotRulesTest {
     fun `minimessage text matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { MiniMessageTextRule(Config.empty) },
         RuleCase(
-            name = "flags ampersand legacy color codes",
-            expectedFindings = 1,
-            source = "fun message(): String = \"&aMineKot\"",
+            name = "accepts legacy-looking plain diagnostic text",
+            expectedFindings = 0,
+            source = "fun diagnostic(): String = \"&aMineKot\"",
         ),
         RuleCase(
-            name = "flags section sign legacy color codes",
-            expectedFindings = 1,
-            source = "fun message(): String = \"§cMineKot\"",
+            name = "ignores unresolved Adventure-looking sink names",
+            expectedFindings = 0,
+            source = "fun run() { audience.sendMessage(\"§cMineKot\") }",
         ),
         RuleCase(
-            name = "reports one finding for a concatenation chain",
-            expectedFindings = 1,
-            source = "fun message(name: String, count: Int): String = \"Hello, \" + name + count",
+            name = "accepts concatenation outside Adventure text sinks",
+            expectedFindings = 0,
+            source = "fun diagnostic(name: String, count: Int): String = \"Hello, \" + name + count",
         ),
         RuleCase(
             name = "accepts minimessage tags",
@@ -200,13 +275,13 @@ class MineKotRulesTest {
             source = "fun key(namespace: String, value: String): String = namespace + \":\" + value",
         ),
         RuleCase(
-            name = "flags concatenation passed directly to a user facing API",
-            expectedFindings = 1,
-            source = "fun run(name: String) { println(\"Hello, \" + name) }",
+            name = "ignores concatenation passed to an unresolved sink",
+            expectedFindings = 0,
+            source = "fun run(name: String) { audience.sendMessage(\"Hello, \" + name) }",
         ),
         RuleCase(
-            name = "flags plain text passed directly to a user facing API",
-            expectedFindings = 1,
+            name = "accepts plain structured logging text",
+            expectedFindings = 0,
             source = "fun run() { logger.info(\"MineKot started\") }",
         ),
         RuleCase(
@@ -215,8 +290,8 @@ class MineKotRulesTest {
             source = "fun run() { logger.info(miniMessage.deserialize(\"<green>Started</green>\")) }",
         ),
         RuleCase(
-            name = "flags raw MiniMessage text passed directly to a logger",
-            expectedFindings = 1,
+            name = "accepts MiniMessage-looking text in a structured logger",
+            expectedFindings = 0,
             source = "fun run() { logger.info(\"<green>MineKot started</green>\") }",
         ),
         RuleCase(
@@ -248,8 +323,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "flags Gradle user-facing output not routed through MiniMessage",
-            expectedFindings = 3,
+            name = "accepts Gradle output without Adventure dependencies",
+            expectedFindings = 0,
             filename = "build.gradle.kts",
             source =
                 """
@@ -266,7 +341,7 @@ class MineKotRulesTest {
         ruleFactory = { MissingKDocRule(Config.empty) },
         RuleCase(
             name = "flags undocumented public declarations",
-            expectedFindings = 2,
+            expectedFindings = 3,
             source =
                 """
                 class Service {
@@ -276,8 +351,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "flags an undocumented constructor property",
-            expectedFindings = 0,
+            name = "flags an undocumented public constructor property",
+            expectedFindings = 1,
             source =
                 """
                 /** Service. */
@@ -317,8 +392,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "flags incomplete function documentation",
-            expectedFindings = 1,
+            name = "accepts useful KDoc without redundant tags",
+            expectedFindings = 0,
             source =
                 """
                 /** Service. */
@@ -346,8 +421,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "requires private internal and override method docs but ignores locals",
-            expectedFindings = 4,
+            name = "exempts private internal override and local methods without proven contracts",
+            expectedFindings = 0,
             source =
                 """
                 private class PrivateService {
@@ -369,8 +444,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "requires docs for complicated non public variables",
-            expectedFindings = 2,
+            name = "requires docs only for complicated internal variables",
+            expectedFindings = 1,
             source =
                 """
                 private val names: List<String> = emptyList()
@@ -379,8 +454,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "requires docs for inherited complicated properties",
-            expectedFindings = 1,
+            name = "exempts contract-identical override properties",
+            expectedFindings = 0,
             source =
                 """
                 /** Parent contract. */
@@ -390,8 +465,8 @@ class MineKotRulesTest {
                 """,
         ),
         RuleCase(
-            name = "requires docs for inferred complicated properties",
-            expectedFindings = 2,
+            name = "requires docs for inferred complicated internal properties",
+            expectedFindings = 1,
             source =
                 """
                 private val names = emptyList<String>()
@@ -421,8 +496,8 @@ class MineKotRulesTest {
     fun `coroutine preference matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { CoroutinePreferenceRule(Config.empty) },
         RuleCase(
-            name = "flags unqualified JDK thread and timer APIs",
-            expectedFindings = 3,
+            name = "flags resolved unqualified JDK thread APIs",
+            expectedFindings = 2,
             source =
                 """
                 fun run() {
@@ -450,8 +525,8 @@ class MineKotRulesTest {
             source = "suspend fun run() { kotlinx.coroutines.delay(250) }",
         ),
         RuleCase(
-            name = "flags executors futures and server scheduler calls",
-            expectedFindings = 4,
+            name = "ignores unresolved concurrency and scheduler names",
+            expectedFindings = 0,
             source =
                 """
                 fun run() {
@@ -1171,14 +1246,14 @@ class MineKotRulesTest {
     fun `comment formatting matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { CommentFormattingRule(Config.empty) },
         RuleCase(
-            name = "flags indented and padded line comments",
-            expectedFindings = 2,
-            source = "fun run() {\n    // explanation\n}\n",
+            name = "flags compact line and block comments",
+            expectedFindings = 3,
+            source = "//explanation\n/*block*/\nfun run() = Unit\n",
         ),
         RuleCase(
-            name = "accepts compact first-column and formatter comments",
+            name = "accepts spaced comments and formatter comments",
             expectedFindings = 0,
-            source = "//explanation\n// @formatter:off\nfun run()=Unit\n// @formatter:on\n",
+            source = "// explanation\n/* block */\n// @formatter:off\nfun run()=Unit\n// @formatter:on\n",
         ),
         RuleCase(
             name = "does not apply line comment formatting to KDoc",
@@ -1191,8 +1266,8 @@ class MineKotRulesTest {
     fun `explicit scope matrix`(): List<DynamicTest> = ruleCases(
         ruleFactory = { ExplicitScopeInNestedScopeRule(Config.empty) },
         RuleCase(
-            name = "flags unqualified outer property and method refs",
-            expectedFindings = 2,
+            name = "does not guess when inline contract analysis omits receiver data",
+            expectedFindings = 0,
             source =
                 """
                 class Engine {
@@ -1367,12 +1442,12 @@ class MineKotRulesTest {
 
     @Test
     fun `comment formatting auto correction is complete and idempotent`() {
-        val source = "    // explanation\nfun run(): Unit = Unit"
+        val source = "//explanation\n/*block*/\nfun run(): Unit = Unit"
         val firstPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
         val secondPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
 
-        assertEquals(2, firstPass.findings.size)
-        assertTrue(firstPass.correctedSource.startsWith("//explanation\n"))
+        assertEquals(3, firstPass.findings.size)
+        assertTrue(firstPass.correctedSource.startsWith("// explanation\n/* block */\n"))
         assertEquals(0, secondPass.findings.size)
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)
     }
@@ -1455,14 +1530,14 @@ class MineKotRulesTest {
     }
 
     @Test
-    fun `ignored Result auto correction is complete and idempotent`() {
+    fun `ignored Result remains report only`() {
         val source = "fun run(): Unit { runCatching { println(\"work\") } }"
         val firstPass = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
         val secondPass = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
 
         assertEquals(1, firstPass.findings.size)
-        assertEquals("fun run(): Unit { runCatching { println(\"work\") }.getOrNull() }", firstPass.correctedSource)
-        assertEquals(0, secondPass.findings.size)
+        assertEquals(source, firstPass.correctedSource)
+        assertEquals(1, secondPass.findings.size)
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)
     }
 
@@ -1472,7 +1547,7 @@ class MineKotRulesTest {
         val result = ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
 
         assertEquals(1, result.findings.size)
-        assertTrue(result.correctedSource.contains("runCatching { println(it) }.getOrNull()"))
+        assertEquals(source, result.correctedSource)
     }
 
     @Test
@@ -1499,7 +1574,7 @@ class MineKotRulesTest {
     }
 
     @Test
-    fun `explicit receiver auto correction requires one valid owner`() {
+    fun `explicit receiver semantic rule remains report only`() {
         val source =
             """
             class Engine {
@@ -1510,14 +1585,12 @@ class MineKotRulesTest {
                 }
             }
             """.trimIndent()
-        val firstPass = ExplicitScopeInNestedScopeRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
-        val secondPass = ExplicitScopeInNestedScopeRule(mineKotAutoCorrectConfig)
-            .lintAndCorrect(firstPass.correctedSource)
+        val findings = ExplicitScopeInNestedScopeRule(mineKotAutoCorrectConfig).lintWithAnalysis(source)
 
-        assertEquals(1, firstPass.findings.size)
-        assertTrue(firstPass.correctedSource.contains("println(this@Engine.name)"))
-        assertEquals(0, secondPass.findings.size)
-        assertEquals(firstPass.correctedSource, secondPass.correctedSource)
+        assertEquals(1, findings.size)
+        assertEquals(MineKotCorrectionMode.DISABLED, mineKotRuleDescriptors.single {
+            descriptor -> descriptor.id == "ExplicitScopeInNestedScope"
+        }.correctionMode)
     }
 
     @Test
@@ -1584,7 +1657,12 @@ class MineKotRulesTest {
         vararg cases: RuleCase,
     ): List<DynamicTest> = cases.map { ruleCase ->
         DynamicTest.dynamicTest(ruleCase.name) {
-            val findings = ruleFactory().lint(ruleCase.source.trimIndent(), ruleCase.filename)
+            val rule = ruleFactory()
+            val findings = if (rule is RequiresAnalysisApi) {
+                rule.lintWithAnalysis(ruleCase.source.trimIndent(), allowCompilationErrors = true)
+            } else {
+                rule.lint(ruleCase.source.trimIndent(), ruleCase.filename)
+            }
 
             assertEquals(
                 ruleCase.expectedFindings,
@@ -1621,10 +1699,6 @@ class MineKotRulesTest {
             "StringTemplateBraces" to ProviderRuleCase(
                 "fun text(name: String): String = \"Hello ${'$'}name\"",
                 "fun text(name: String): String = \"Hello ${'$'}{name}\"",
-            ),
-            "MiniMessageText" to ProviderRuleCase(
-                "fun run() { println(\"Hello\") }",
-                "fun run() { logger.info(mineKotMiniMessage(\"<green>Hello</green>\")) }",
             ),
             "MissingKDoc" to ProviderRuleCase(
                 "fun run(): Unit = Unit",
@@ -1673,12 +1747,8 @@ class MineKotRulesTest {
                 "// @formatter:off\nfun run() = Unit\n// @formatter:on",
             ),
             "CommentFormatting" to ProviderRuleCase(
-                "// padded\nfun run() = Unit",
                 "//compact\nfun run() = Unit",
-            ),
-            "ExplicitScopeInNestedScope" to ProviderRuleCase(
-                "class Engine { val name = \"MineKot\"; fun run() { runCatching { println(name) } } }",
-                "class Engine { val name = \"MineKot\"; fun run() { runCatching { println(this@Engine.name) } } }",
+                "// padded\nfun run() = Unit",
             ),
         )
 

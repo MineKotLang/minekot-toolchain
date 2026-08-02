@@ -66,11 +66,11 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
                     return@forEach
                 }
                 val threshold = when {
-                    scope == javaUtilPackage || recursiveOnDemandPackages.any { packageName ->
+                    scope == JAVA_UTIL_PACKAGE || RECURSIVE_ON_DEMAND_PACKAGES.any { packageName ->
                         scope == packageName || scope.startsWith("${packageName}.")
-                    } -> onDemandWildcardThreshold
+                    } -> ON_DEMAND_WILDCARD_THRESHOLD
 
-                    else -> packageWildcardThreshold
+                    else -> PACKAGE_IMPORT_THRESHOLD
                 }
                 if (scope.isBlank() || imports.size < threshold) {
                     return@forEach
@@ -107,9 +107,9 @@ class ImportPolicyRule(config: Config) : Rule(config, "MineKot codestyle rule.")
     }
 
     private companion object {
-        private const val packageWildcardThreshold: Int = 5
-        private const val onDemandWildcardThreshold: Int = 1
-        private const val javaUtilPackage: String = "java.util"
-        private val recursiveOnDemandPackages: Set<String> = setOf("io.ktor", "kotlinx.android.synthetic")
+        private const val PACKAGE_IMPORT_THRESHOLD: Int = 5
+        private const val ON_DEMAND_WILDCARD_THRESHOLD: Int = 1
+        private const val JAVA_UTIL_PACKAGE: String = "java.util"
+        private val RECURSIVE_ON_DEMAND_PACKAGES: Set<String> = setOf("io.ktor", "kotlinx.android.synthetic")
     }
 }

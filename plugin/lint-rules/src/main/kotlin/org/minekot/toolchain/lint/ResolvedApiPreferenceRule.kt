@@ -1,20 +1,18 @@
 package org.minekot.toolchain.lint
 
 import dev.detekt.api.*
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.psi.KtCallExpression
 
-/** Resolves forbidden Java and non-kotlinx calls using Kotlin Analysis API. */
+/**
+ * Reports resolved direct JDK APIs when a Kotlin, kotlinx, or MineKot layer owns the capability.
+ */
 class ResolvedApiPreferenceRule(config: Config) :
     Rule(config, "MineKot codestyle rule."),
     RequiresAnalysisApi {
     private val issue: Issue = Issue(
         id = "ResolvedApiPreference",
         severity = Severity.Style,
-        description = "MineKot resolves Java and non-kotlinx APIs before reporting replacements.",
+        description = "MineKot consumers use Kotlin, kotlinx, and MineKot wrappers before direct JDK APIs.",
         debt = Debt.TEN_MINS,
     )
 
@@ -22,35 +20,35 @@ class ResolvedApiPreferenceRule(config: Config) :
 
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
-        val resolvedName = analyze(expression) {
-            val symbol = expression.resolveToCall()?.singleFunctionCallOrNull()?.symbol ?: return@analyze null
-            if (symbol is KaConstructorSymbol) {
-                symbol.containingClassId?.asSingleFqName()?.asString()?.plus(".<init>")
-            } else {
-                symbol.callableId?.asSingleFqName()?.asString()
-            }
-        } ?: return
-        val replacement = forbiddenResolvedCalls.entries.firstOrNull { (call, _) ->
-            resolvedName == call || resolvedName.startsWith("${call}.")
+        if (expression.isInsideMineKotNativeBoundary(config)) {
+            return
+        }
+        val resolvedCall = expression.resolveMineKotCall() ?: return
+        val preference = resolvedPreferences.entries.firstOrNull { (callableId, _) ->
+            resolvedCall.callableId == callableId || resolvedCall.callableId.startsWith("${callableId}.")
         }?.value ?: return
         report(
             CodeSmell(
                 issue = issue,
                 entity = Entity.from(expression),
-                message = "Prefer ${replacement} over resolved call ${resolvedName}.",
+                message = "Prefer ${preference} over resolved call ${resolvedCall.callableId} outside a helper or adapter boundary.",
             ),
         )
     }
 
     private companion object {
-        private val forbiddenResolvedCalls: Map<String, String> = mapOf(
-            "java.io.File.<init>" to "java.nio.file.Path and kotlinx-io",
-            "java.lang.Thread.<init>" to "kotlinx-coroutines",
-            "java.lang.Thread.sleep" to "kotlinx.coroutines.delay",
-            "java.nio.file.Files" to "kotlin.io.path or kotlinx-io",
-            "java.util.Timer.<init>" to "kotlinx-coroutines",
-            "java.util.concurrent.CompletableFuture" to "kotlinx-coroutines Deferred",
-            "java.util.concurrent.Executors" to "a lifecycle-owned CoroutineDispatcher",
+        private val resolvedPreferences: Map<String, String> = mapOf(
+            "java.io.BufferedInputStream.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.io.BufferedOutputStream.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.io.File.<init>" to "Path plus a MineKot path wrapper",
+            "java.io.FileInputStream.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.io.FileOutputStream.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.io.FileReader.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.io.FileWriter.<init>" to "kotlinx-io or a MineKot IO wrapper",
+            "java.nio.file.Files" to "kotlin.io.path, kotlinx-io, or a MineKot IO wrapper",
+            "java.util.ArrayList.<init>" to "mutableListOf",
+            "java.util.HashMap.<init>" to "mutableMapOf",
+            "java.util.HashSet.<init>" to "mutableSetOf",
         )
     }
 }

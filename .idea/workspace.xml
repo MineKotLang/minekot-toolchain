@@ -7,26 +7,54 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="refactor: remove `ParameterWrappingRule` and add semantic review tasks&#10;&#10;- Remove `ParameterWrappingRule` to avoid bloated declaration and call formatting.&#10;- Introduce `MineKotSemanticReviewTasks` for incremental style-guide enforcement.&#10;- Update `CHECKS.md` to reflect the removal and current enforcement status.">
-      <change afterPath="$PROJECT_DIR$/.github/workflows/release.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotCiCdTasks.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/build/ci-cd.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/build.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
+    <list default="true" id="266db25a-ad6a-4a38-a392-21b3225b6122" name="Changes" comment="feat: introduce CI/CD conventions and migrate Maven repository URLs&#10;&#10;- Add the `ciCd` feature block to the toolchain extension to manage release pipelines, artifact bundling, and changelog generation.&#10;- Introduce new CI/CD Gradle tasks (e.g., `writeMineKotCiMetadata`, `prepareMineKotRelease`, `assembleMineKotRelease`) to enforce typed release conventions.&#10;- Add a GitHub Actions `release.yml` workflow for automated, verified deployments on protected tags.&#10;- Update `build.yml` to use Ubuntu 24.04, refine Gradle caching logic, and support workflow dispatch.&#10;- Migrate the default MineKot repository URLs from `maven.minekot.org` to `maven2.minekot.org` across the toolchain and project settings.&#10;- Enhance snapshot version detection to include `-dev.` Qualifiers in addition to `-SNAPSHOT`.&#10;- Bump the project version to `1.2.0` and initialize `CHANGELOG.md`.">
+      <change afterPath="$PROJECT_DIR$/libraries/codegen/core/src/main/kotlin/org/minekot/codegen/core/MineKotKotlinCode.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/libraries/kotlin/common/src/main/kotlin/org/minekot/kotlin/common/MineKotCatching.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotAnalysis.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotAnalysisRulesTest.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotKspStaging.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHECKS.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHECKS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/NOTICE" beforeDir="false" afterPath="$PROJECT_DIR$/NOTICE" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/libraries/adventure/ansi/src/main/kotlin/org/minekot/adventure/ansi/MineKotAnsi.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/adventure/ansi/src/main/kotlin/org/minekot/adventure/ansi/MineKotAnsi.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/libraries/adventure/json/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/adventure/json/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/codegen/core/src/test/kotlin/org/minekot/codegen/core/MineKotCodegenTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/codegen/core/src/test/kotlin/org/minekot/codegen/core/MineKotCodegenTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/kotlin/common/src/main/kotlin/org/minekot/kotlin/common/MineKotLibraryFeatures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/common/src/main/kotlin/org/minekot/kotlin/common/MineKotLibraryFeatures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/kotlin/common/src/test/kotlin/org/minekot/kotlin/common/MineKotCommonTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/kotlin/common/src/test/kotlin/org/minekot/kotlin/common/MineKotCommonTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CommentFormattingRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CommentFormattingRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CoroutinePreferenceRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/CoroutinePreferenceRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ExplicitScopeInNestedScopeRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ExplicitScopeInNestedScopeRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ForbiddenTryCatchRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ForbiddenTryCatchRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/GradleDslConventionsRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/GradleDslConventionsRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ImportPolicyRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ImportPolicyRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/KotlinxPreferenceRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/KotlinxPreferenceRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotAutoCorrection.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotAutoCorrection.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleDescriptor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MineKotRuleDescriptor.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MiniMessageTextRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MiniMessageTextRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MissingKDocRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/MissingKDocRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResolvedApiPreferenceRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResolvedApiPreferenceRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResultHandlingRule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/main/kotlin/org/minekot/toolchain/lint/ResultHandlingRule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRuleTestExtensions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRuleTestExtensions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRulesTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/lint-rules/src/test/kotlin/org/minekot/toolchain/lint/MineKotRulesTest.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotAssistedFixTasks.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotAssistedFixTasks.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotFormatTasks.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotFormatTasks.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotSemanticReviewTasks.kt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainExtension.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainExtension.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainPlugin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/kotlin/org/minekot/toolchain/MineKotToolchainPlugin.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/detekt.yml" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/detekt.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/intellij-code-style.xml" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/codestyle/intellij-code-style.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/project/notice" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/main/resources/project/notice" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/kotlin/org/minekot/toolchain/MineKotToolchainPluginTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/kotlin/org/minekot/toolchain/MineKotToolchainPluginTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/settings.gradle.kts.template" beforeDir="false" afterPath="$PROJECT_DIR$/plugin/toolchain/src/test/resources/fixtures/settings.gradle.kts.template" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/samples/smoke/minekot-review.json" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/minekot-review.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/samples/smoke/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/settings.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/config/detekt/minekot.yml" beforeDir="false" afterPath="$PROJECT_DIR$/samples/smoke/config/detekt/minekot.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/smoke/minekot-review.json" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,7 +62,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="694" />
+    <option name="cachedIndexableFilesCount" value="445" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExternalProjectsData">
@@ -72,12 +100,25 @@
                 <item name="Tasks" type="e4a08cd1:TasksNode" />
                 <item name="publishing" type="c8890929:TasksNode$1" />
               </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="minekot-toolchain" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="verification" type="c8890929:TasksNode$1" />
+              </path>
             </expand>
             <select />
           </tree_state>
         </projects_view>
       </state>
     </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Kotlin Class" />
+      </list>
+    </option>
   </component>
   <component name="FormatOnSaveOptions">
     <option name="myRunOnSave" value="true" />
@@ -98,75 +139,78 @@
     &quot;accountId&quot;: &quot;ea5a7e0e-ec4d-41e4-b7e3-ea64d29eee71&quot;
   }
 }</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/.gradle/caches/9.6.1/transforms/7beb05e8deeb652f4cbbd601d765d107/transformed/maven/org/gradle/api/publish/maven/MavenPom.java" root0="SKIP_INSPECTION" />
+  </component>
   <component name="HugoPluginSettings">
     <option name="customHugoPath" value="" />
     <option name="defaultHugoNewOptions" value="" />
   </component>
-  <component name="KmpPackageLockUpdaterState"><![CDATA[{
-  "jsModulesKotlinGradlePluginVersion": {},
-  "wasmModulesKotlinGradlePluginVersion": {}
-}]]></component>
+  <component name="KmpPackageLockUpdaterState">{
+  &quot;jsModulesKotlinGradlePluginVersion&quot;: {},
+  &quot;wasmModulesKotlinGradlePluginVersion&quot;: {}
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.478850945536333E-49" />
-      <entry key="MS500" value="1.7202498783555815E-10" />
-      <entry key="S2" value="0.0072376712116735" />
-      <entry key="S5" value="0.5013494010504258" />
-      <entry key="S10" value="2.303191509215681" />
-      <entry key="S30" value="8.692765188278168" />
-      <entry key="S60" value="17.459519209282245" />
-      <entry key="M2" value="31.441194326719334" />
-      <entry key="M5" value="54.19807904037437" />
-      <entry key="M10" value="70.08476531080225" />
-      <entry key="M15" value="79.64208629761582" />
-      <entry key="M30" value="97.65137291195389" />
-      <entry key="H1" value="117.62569294956057" />
-      <entry key="H2" value="140.26714698890655" />
-      <entry key="H4" value="161.4294936835921" />
-      <entry key="D1" value="189.62778069246266" />
-      <entry key="W1" value="195.9035712669958" />
+      <entry key="MS100" value="0.009551877169469283" />
+      <entry key="MS500" value="0.39447342125403184" />
+      <entry key="S2" value="0.7978733333982574" />
+      <entry key="S5" value="1.0347106626484146" />
+      <entry key="S10" value="1.30603131355296" />
+      <entry key="S30" value="1.690335611891103" />
+      <entry key="S60" value="1.8323494185005638" />
+      <entry key="M2" value="1.913009681326905" />
+      <entry key="M5" value="2.034455326574953" />
+      <entry key="M10" value="2.7147942035111825" />
+      <entry key="M15" value="4.290911233748419" />
+      <entry key="M30" value="14.269283471810926" />
+      <entry key="H1" value="48.79809911455093" />
+      <entry key="H2" value="129.7771134324393" />
+      <entry key="H4" value="261.5482338398505" />
+      <entry key="D1" value="560.4474317332346" />
+      <entry key="W1" value="651.132461681122" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0000000000958786" />
-      <entry key="MS500" value="1.009916185382803" />
-      <entry key="S2" value="1.3245714916739597" />
-      <entry key="S5" value="1.7824340338268319" />
-      <entry key="S10" value="2.185650576802346" />
-      <entry key="S30" value="2.8566104500645295" />
-      <entry key="S60" value="3.674634234012506" />
-      <entry key="M2" value="5.550767838995679" />
-      <entry key="M5" value="9.485148774761138" />
-      <entry key="M10" value="12.324823331253123" />
-      <entry key="M15" value="13.921125338547633" />
-      <entry key="M30" value="16.820656829014005" />
-      <entry key="H1" value="20.267919483000156" />
-      <entry key="H2" value="24.573780465346573" />
-      <entry key="H4" value="28.779109385163608" />
-      <entry key="D1" value="34.49415940534809" />
-      <entry key="W1" value="35.775819851485245" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0" />
+      <entry key="S30" value="1.0" />
+      <entry key="S60" value="1.0000000000001414" />
+      <entry key="M2" value="1.0000003760931306" />
+      <entry key="M5" value="1.002725402571565" />
+      <entry key="M10" value="1.0685138655708273" />
+      <entry key="M15" value="1.2739055221223312" />
+      <entry key="M30" value="2.4956119501877687" />
+      <entry key="H1" value="5.252933794697681" />
+      <entry key="H2" value="11.25607515887794" />
+      <entry key="H4" value="23.59563954450853" />
+      <entry key="D1" value="58.26438046053686" />
+      <entry key="W1" value="69.81448321208485" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.0011533131459272761" />
-      <entry key="MS500" value="0.2585298664560188" />
-      <entry key="S2" value="0.8158458540808475" />
-      <entry key="S5" value="1.8608820570845244" />
-      <entry key="S10" value="4.1743622702856005" />
-      <entry key="S30" value="11.3927569394976" />
-      <entry key="S60" value="21.025428560104235" />
-      <entry key="M2" value="36.8929525000157" />
-      <entry key="M5" value="63.60110124669849" />
-      <entry key="M10" value="82.35034805318044" />
-      <entry key="M15" value="93.51458985774433" />
-      <entry key="M30" value="114.43733155369098" />
-      <entry key="H1" value="137.869721543428" />
-      <entry key="H2" value="164.8250395075893" />
-      <entry key="H4" value="190.198764524168" />
-      <entry key="D1" value="224.1198728708085" />
-      <entry key="W1" value="231.6790821085196" />
+      <entry key="MS100" value="0.023061202632870568" />
+      <entry key="MS500" value="0.6718923879609989" />
+      <entry key="S2" value="1.5039958072094737" />
+      <entry key="S5" value="1.9029832817991403" />
+      <entry key="S10" value="2.2374126028156383" />
+      <entry key="S30" value="2.666777121258019" />
+      <entry key="S60" value="2.820477455863852" />
+      <entry key="M2" value="2.907050192456761" />
+      <entry key="M5" value="3.034766615421295" />
+      <entry key="M10" value="3.781626145189113" />
+      <entry key="M15" value="5.562516003177005" />
+      <entry key="M30" value="16.760180066601645" />
+      <entry key="H1" value="54.044460188955306" />
+      <entry key="H2" value="141.02455377321485" />
+      <entry key="H4" value="285.1339978204201" />
+      <entry key="D1" value="618.7076578387763" />
+      <entry key="W1" value="720.946234151167" />
     </decayedShown>
   </component>
   <component name="OptimizeOnSaveOptions">
@@ -190,8 +234,15 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "CidrDebugProfileConversion": "true",
+    "GitHub Workflow.GitHub Workflow: build.yml.executor": "Run",
+    "Gradle.minekot-toolchain [:libraries:adventure:check].executor": "Run",
+    "Gradle.minekot-toolchain [:libraries:check].executor": "Run",
+    "Gradle.minekot-toolchain [assemble].executor": "Run",
     "Gradle.minekot-toolchain [build].executor": "Run",
+    "Gradle.minekot-toolchain [check].executor": "Run",
+    "Gradle.minekot-toolchain [clean].executor": "Run",
     "Gradle.minekot-toolchain [mineKotSmokeTest].executor": "Run",
+    "Gradle.minekot-toolchain [publishAllPublicationsToMinekotRepository].executor": "Run",
     "Gradle.minekot-toolchain [publishToMavenLocal].executor": "Run",
     "Gradle.minekot-toolchain [publish].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
@@ -211,10 +262,12 @@
     "junie.onboarding.icon.badge.shown": "true",
     "kobweb-plugin-state": "DISABLED",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/mnt/PortableSSD/Documents/code/__Minecraft/MineKot/Repositories/minekot-toolchain",
+    "last_opened_file_path": "/mnt/PortableSSD/scripts/JetBrains Sans",
     "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "project.structure.last.edited": "Modules",
@@ -222,27 +275,18 @@
     "project.structure.side.proportion": "0.46642685",
     "rearrange.code.on.save": "true",
     "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "settings.editor.splitter.proportion": "0.30120483",
     "to.speed.mode.migration.done": "true"
   }
 }]]></component>
-  <component name="QodanaReportsService">
-    <option name="descriptions">
-      <ReportDescription localRun="true" path="/tmp/qodana_output/qodana.sarif.json" reportGuid="d0a971f6-6bbc-4bd2-88a2-6dbe4d3894dc" reportId="minekot-toolchain/qodana/2026-07-06" />
-      <ReportDescription localRun="true" path="/tmp/qodana_output1/qodana.sarif.json" reportGuid="700e6639-5284-4099-8762-33fb7decb7dc" reportId="minekot-toolchain/qodana/2026-07-06" />
-    </option>
-  </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/plugin/toolchain/src/main/resources/project" />
     </key>
   </component>
-  <component name="RunManager" selected="GitHub Workflow.GitHub Workflow: build.yml">
-    <configuration name="GitHub Workflow: build.yml" type="GitHubWorkflow.RunConfiguration" factoryName="GitHubWorkflow.RunConfiguration.Factory" temporary="true" apiUrl="https://api.github.com" owner="MineKotLang" repo="minekot-toolchain" workflowPath=".github/workflows/build.yml" ref="master" tokenEnvVar="" inputsText="">
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Gradle.minekot-toolchain [check]">
     <configuration name="minekot-toolchain [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -268,12 +312,62 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
+    <configuration name="minekot-toolchain [check]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="check" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <GradleProfilingDisabled>false</GradleProfilingDisabled>
+      <GradleCoverageDisabled>false</GradleCoverageDisabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="minekot-toolchain [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <GradleProfilingDisabled>false</GradleProfilingDisabled>
+      <GradleCoverageDisabled>false</GradleCoverageDisabled>
+      <method v="2" />
+    </configuration>
     <configuration name="minekot-toolchain [mineKotSmokeTest]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" value="--refresh-dependencies" />
+        <option name="scriptParameters" />
         <option name="taskDescriptions">
           <list />
         </option>
@@ -293,7 +387,7 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
-    <configuration name="minekot-toolchain [publishToMavenLocal]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="minekot-toolchain [publishAllPublicationsToMinekotRepository]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -304,32 +398,7 @@
         </option>
         <option name="taskNames">
           <list>
-            <option value="publishToMavenLocal" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <GradleProfilingDisabled>false</GradleProfilingDisabled>
-      <GradleCoverageDisabled>false</GradleCoverageDisabled>
-      <method v="2" />
-    </configuration>
-    <configuration name="minekot-toolchain [publish]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value="publish" />
+            <option value="publishAllPublicationsToMinekotRepository" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -345,19 +414,19 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="GitHub Workflow.GitHub Workflow: build.yml" />
-        <item itemvalue="Gradle.minekot-toolchain [publish]" />
-        <item itemvalue="Gradle.minekot-toolchain [mineKotSmokeTest]" />
-        <item itemvalue="Gradle.minekot-toolchain [publishToMavenLocal]" />
+        <item itemvalue="Gradle.minekot-toolchain [check]" />
         <item itemvalue="Gradle.minekot-toolchain [build]" />
+        <item itemvalue="Gradle.minekot-toolchain [mineKotSmokeTest]" />
+        <item itemvalue="Gradle.minekot-toolchain [clean]" />
+        <item itemvalue="Gradle.minekot-toolchain [publishAllPublicationsToMinekotRepository]" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-63390994e64e-intellij.indexing.shared.core-IU-262.8665.258" />
-        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.8665.258" />
+        <option value="bundled-jdk-30f59d01ecdd-63390994e64e-intellij.indexing.shared.core-IU-262.8665.337" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.8665.337" />
       </set>
     </attachedChunks>
   </component>
@@ -574,7 +643,8 @@
     <MESSAGE value="fogor to bump version" />
     <MESSAGE value="fogor to bump version&#10;&#10;Signed-off-by: GuavaDealer (Idan Nehama) &lt;GuavaDealer@gmail.com&gt;" />
     <MESSAGE value="refactor: remove `ParameterWrappingRule` and add semantic review tasks&#10;&#10;- Remove `ParameterWrappingRule` to avoid bloated declaration and call formatting.&#10;- Introduce `MineKotSemanticReviewTasks` for incremental style-guide enforcement.&#10;- Update `CHECKS.md` to reflect the removal and current enforcement status." />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: remove `ParameterWrappingRule` and add semantic review tasks&#10;&#10;- Remove `ParameterWrappingRule` to avoid bloated declaration and call formatting.&#10;- Introduce `MineKotSemanticReviewTasks` for incremental style-guide enforcement.&#10;- Update `CHECKS.md` to reflect the removal and current enforcement status." />
+    <MESSAGE value="feat: introduce CI/CD conventions and migrate Maven repository URLs&#10;&#10;- Add the `ciCd` feature block to the toolchain extension to manage release pipelines, artifact bundling, and changelog generation.&#10;- Introduce new CI/CD Gradle tasks (e.g., `writeMineKotCiMetadata`, `prepareMineKotRelease`, `assembleMineKotRelease`) to enforce typed release conventions.&#10;- Add a GitHub Actions `release.yml` workflow for automated, verified deployments on protected tags.&#10;- Update `build.yml` to use Ubuntu 24.04, refine Gradle caching logic, and support workflow dispatch.&#10;- Migrate the default MineKot repository URLs from `maven.minekot.org` to `maven2.minekot.org` across the toolchain and project settings.&#10;- Enhance snapshot version detection to include `-dev.` Qualifiers in addition to `-SNAPSHOT`.&#10;- Bump the project version to `1.2.0` and initialize `CHANGELOG.md`." />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: introduce CI/CD conventions and migrate Maven repository URLs&#10;&#10;- Add the `ciCd` feature block to the toolchain extension to manage release pipelines, artifact bundling, and changelog generation.&#10;- Introduce new CI/CD Gradle tasks (e.g., `writeMineKotCiMetadata`, `prepareMineKotRelease`, `assembleMineKotRelease`) to enforce typed release conventions.&#10;- Add a GitHub Actions `release.yml` workflow for automated, verified deployments on protected tags.&#10;- Update `build.yml` to use Ubuntu 24.04, refine Gradle caching logic, and support workflow dispatch.&#10;- Migrate the default MineKot repository URLs from `maven.minekot.org` to `maven2.minekot.org` across the toolchain and project settings.&#10;- Enhance snapshot version detection to include `-dev.` Qualifiers in addition to `-SNAPSHOT`.&#10;- Bump the project version to `1.2.0` and initialize `CHANGELOG.md`." />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />

@@ -1,6 +1,8 @@
 package org.minekot.toolchain
 
 import org.gradle.api.Action
+import org.gradle.api.Named
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
@@ -86,6 +88,12 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
      * Adventure and MiniMessage dependencies.
      */
     val adventure: VersionedFeatureBlock = objects.versionedFeatureBlock(true, "5.2.0")
+
+    /**
+     * Staged compilation and source-generator integration.
+     */
+    val stagedCompilation: StagedCompilationFeatureBlock =
+        objects.newInstance(StagedCompilationFeatureBlock::class.java)
 
     /**
      * MineKot Detekt and codestyle integration.
@@ -198,11 +206,48 @@ abstract class MineKotToolchainExtension @Inject constructor(objects: ObjectFact
     }
 
     /**
+     * Configures staged compilation and source generators.
+     */
+    fun stagedCompilation(action: Action<in StagedCompilationFeatureBlock>) {
+        action.execute(stagedCompilation)
+    }
+
+    /**
      * Configures lint integration.
      */
     fun lint(action: Action<in LintFeatureBlock>) {
         action.execute(lint)
     }
+}
+
+/** Staged compilation and explicit generator registrations. */
+abstract class StagedCompilationFeatureBlock @Inject constructor(objects: ObjectFactory) {
+    /** Source-derived Kotlin generators with isolated staged outputs. */
+    val generators: NamedDomainObjectContainer<StagedKotlinGeneratorSpec> =
+        objects.domainObjectContainer(StagedKotlinGeneratorSpec::class.java) { name ->
+            objects.newInstance(StagedKotlinGeneratorSpec::class.java, name)
+        }
+}
+
+/** Explicit staged Kotlin generator output contract. */
+abstract class StagedKotlinGeneratorSpec @Inject constructor(
+    private val generatorName: String,
+    objects: ObjectFactory,
+) : Named {
+    /** Name used in Gradle DSL registration. */
+    override fun getName(): String = generatorName
+
+    /** Kotlin compilation consuming generated output. */
+    val compilationName: Property<String> = objects.property(String::class.java)
+
+    /** Original generated Kotlin output wired into Kotlin compilation. */
+    val originalKotlinOutput: DirectoryProperty = objects.directoryProperty()
+
+    /** Generated Kotlin output produced from formatter staging. */
+    val formatKotlinOutput: DirectoryProperty = objects.directoryProperty()
+
+    /** Generated Kotlin output produced from assisted-fix staging. */
+    val assistKotlinOutput: DirectoryProperty = objects.directoryProperty()
 }
 
 /**
@@ -400,12 +445,6 @@ abstract class LintFeatureBlock @Inject constructor(objects: ObjectFactory) : Fe
 
     /** Assisted-fix preview report directory. */
     val assistReportDirectory: DirectoryProperty = objects.directoryProperty()
-
-    /** Checked-in semantic style-guide review document. */
-    val semanticReviewFile: RegularFileProperty = objects.fileProperty()
-
-    /** Maximum accepted semantic-review age in days. */
-    val semanticReviewMaxAgeDays: Property<Int> = objects.property(Int::class.java)
 }
 
 private fun ObjectFactory.featureBlock(enabled: Boolean): FeatureBlock =
@@ -470,5 +509,4 @@ private fun ObjectFactory.lintFeatureBlock(enabled: Boolean): LintFeatureBlock =
         this.enabled.convention(enabled)
         autoCorrect.convention(false)
         buildUponDefaultConfig.convention(false)
-        semanticReviewMaxAgeDays.convention(30)
     }

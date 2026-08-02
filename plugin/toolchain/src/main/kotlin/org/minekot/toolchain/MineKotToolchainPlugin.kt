@@ -8,17 +8,25 @@ import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.language.jvm.tasks.ProcessResources
+import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerArgumentsProducer
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.JarURLConnection
 import java.net.URI
@@ -34,7 +42,6 @@ class MineKotToolchainPlugin : Plugin<Project> {
         )
         extension.lint.assistRequestFile.convention(project.layout.projectDirectory.file("minekot-fixes.json"))
         extension.lint.assistReportDirectory.convention(project.layout.buildDirectory.dir("reports/minekot"))
-        extension.lint.semanticReviewFile.convention(project.rootProject.layout.projectDirectory.file("minekot-review.json"))
         extension.ciCd.fragmentsDirectory.convention(project.rootProject.layout.projectDirectory.dir(".changes"))
         extension.ciCd.changelogFile.convention(project.rootProject.layout.projectDirectory.file("CHANGELOG.md"))
         extension.ciCd.evidenceDirectory.convention(project.rootProject.layout.projectDirectory.dir("docs/releases"))
@@ -43,6 +50,12 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.ciCd.reportDirectory.convention(project.rootProject.layout.buildDirectory.dir("reports/minekot/cicd"))
         configureConventions(project, extension)
 
+        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            throw GradleException(
+                "MineKot toolchain currently supports Kotlin/JVM projects only; " +
+                        "Kotlin Multiplatform staged compilation is not yet supported.",
+            )
+        }
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("org.jetbrains.kotlin.jvm")
         project.pluginManager.apply("com.gradleup.shadow")
@@ -68,7 +81,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
         project.dependencies.add(
             stagedCompilerClasspath.name,
-            "org.jetbrains.kotlin:kotlin-compiler-embeddable:${KotlinVersion.CURRENT}",
+            "org.jetbrains.kotlin:kotlin-compiler-embeddable:${kotlinCompilerVersion()}",
         )
 
         val writeMineKotCodestyle =
@@ -93,24 +106,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 it.description = "Verifies raw source files and repository-level MineKot codestyle policy."
                 it.projectDirectory.set(project.layout.projectDirectory)
             }
-        project.tasks.register("mineKotReviewPreview", MineKotReviewPreviewTask::class.java) {
-            it.group = "minekot"
-            it.description = "Writes a source-fingerprinted MineKot semantic-review template."
-            it.projectDirectory.set(project.rootProject.layout.projectDirectory)
-            it.reportDirectory.set(extension.lint.assistReportDirectory)
-        }
-        val verifyMineKotSemanticReview =
-            project.tasks.register("verifyMineKotSemanticReview", VerifyMineKotSemanticReviewTask::class.java) {
-                it.group = "verification"
-                it.description = "Verifies current MineKot semantic style-guide confirmation."
-                it.projectDirectory.set(project.rootProject.layout.projectDirectory)
-                it.reviewFile.set(extension.lint.semanticReviewFile)
-                it.maximumAgeDays.set(extension.lint.semanticReviewMaxAgeDays)
-            }
         project.tasks.named("check") {
             it.outputs.upToDateWhen { false }
             it.doLast {}
-            it.dependsOn(verifyMineKotCodestyle, verifyMineKotSemanticReview)
+            it.dependsOn(verifyMineKotCodestyle)
         }
         project.tasks.register("mineKotAssistPreview", MineKotAssistPreviewTask::class.java) {
             it.group = "minekot"
@@ -126,32 +125,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.requestFile.set(extension.lint.assistRequestFile)
             it.reportDirectory.set(extension.lint.assistReportDirectory)
         }
-        val assistSourceTree = project.fileTree(
-            extension.lint.assistReportDirectory.map { directory ->
-                directory.dir("staged")
-            },
-        ) {
-            it.include("src/**/*.kt", "**/src/**/*.kt")
-        }
-        val assistCompilation = project.tasks.register("mineKotAssistCompileStaged", JavaExec::class.java) { task ->
+        val assistCompilation = project.tasks.register("mineKotAssistCompileStaged") { task ->
             task.group = "verification"
-            task.description = "Compiles confirmed staged assisted fixes before publication."
+            task.description = "Compiles each confirmed staged Kotlin/JVM assisted-fix compilation."
             task.dependsOn(assistStage)
-            task.classpath(stagedCompilerClasspath)
-            task.mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
-            val destination = project.layout.buildDirectory.dir("tmp/minekot/assist-classes")
-            task.outputs.dir(destination)
-            task.doFirst {
-                destination.get().asFile.mkdirs()
-                task.setArgs(
-                    stagedCompilerArguments(
-                        assistSourceTree.files,
-                        project.configurations.getByName("testCompileClasspath").asPath,
-                        destination.get().asFile.absolutePath,
-                        extension.build.javaVersion.get(),
-                    ),
-                )
-            }
         }
         project.tasks.register("mineKotAssistApply", MineKotAssistApplyTask::class.java) {
             it.group = "minekot"
@@ -188,6 +165,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 configureShadow(project, extension.shadow)
             }
             configureDependencies(project, extension)
+            configureMineKotAssistCompilation(project)
             if (extension.lint.enabled.get()) {
                 configureLint(project, extension.lint)
             }
@@ -508,6 +486,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
         project.tasks.named("detekt", Detekt::class.java) {
             it.source(project.buildFile)
         }
+        val fullAnalysisTasks = project.tasks.matching { task -> task.name in fullAnalysisTaskNames }
+        project.tasks.named("check").configure { check ->
+            check.dependsOn(fullAnalysisTasks)
+        }
         project.tasks.withType(DetektCreateBaselineTask::class.java).configureEach {
             it.enabled = false
         }
@@ -526,17 +508,16 @@ class MineKotToolchainPlugin : Plugin<Project> {
 
     private fun configureMineKotFormat(project: Project) {
         val stagingDirectory = project.layout.buildDirectory.dir("tmp/minekot/format-sources")
+        val baselineFile = project.layout.buildDirectory.file("tmp/minekot/format-baseline.json")
         val stage = project.tasks.register("mineKotFormatStage", MineKotFormatStageTask::class.java) {
             it.group = "minekot"
             it.description = "Stages Kotlin sources for transactional formatting."
             it.projectDirectory.set(project.layout.projectDirectory)
             it.stagingDirectory.set(stagingDirectory)
+            it.baselineFile.set(baselineFile)
         }
         val sourceTree = project.fileTree(stagingDirectory) {
             it.include("**/*.kt", "**/*.kts")
-        }
-        val compilableSourceTree = project.fileTree(stagingDirectory) {
-            it.include("src/**/*.kt", "**/src/**/*.kt")
         }
         val firstPass = project.tasks.register("mineKotFormatFirstPass", Detekt::class.java) {
             it.group = "minekot"
@@ -549,37 +530,21 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.outputs.upToDateWhen { false }
             it.outputs.cacheIf { false }
         }
-        val correctionPasses = (2..8).runningFold(firstPass) { previous, number ->
-            project.tasks.register(
-                if (number == 2) "mineKotFormatSecondPass" else "mineKotFormatConvergencePass${number}",
-                Detekt::class.java,
-            ) {
-                it.group = "minekot"
-                it.description = "Applies deterministic MineKot correction convergence pass ${number}."
-                it.dependsOn(previous)
-                it.autoCorrect.set(true)
-                it.ignoreFailures.set(true)
-                it.source(sourceTree)
-                it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
-                it.outputs.upToDateWhen { false }
-                it.outputs.cacheIf { false }
-            }
-        }
-        val convergedCorrections = correctionPasses.last()
+        val snapshotFile = project.layout.buildDirectory.file("tmp/minekot/format-first-pass.json")
         val snapshot = project.tasks.register("mineKotFormatSnapshot", MineKotFormatSnapshotTask::class.java) {
             it.group = "minekot"
-            it.description = "Captures MineKot source hashes after correction convergence."
-            it.dependsOn(convergedCorrections)
+            it.description = "Captures MineKot source hashes after the first correction pass."
+            it.dependsOn(firstPass)
             it.projectDirectory.set(stagingDirectory)
-            it.snapshotFile.set(project.layout.buildDirectory.file("tmp/minekot/format-converged.json"))
+            it.snapshotFile.set(snapshotFile)
             it.outputs.upToDateWhen { false }
         }
-        val verificationPass = project.tasks.register("mineKotFormatVerificationPass", Detekt::class.java) {
+        val secondPass = project.tasks.register("mineKotFormatSecondPass", Detekt::class.java) {
             it.group = "verification"
-            it.description = "Verifies MineKot corrections are clean and idempotent."
+            it.description = "Applies the second MineKot correction pass for byte-identity verification."
             it.dependsOn(snapshot)
             it.autoCorrect.set(true)
-            it.ignoreFailures.set(false)
+            it.ignoreFailures.set(true)
             it.source(sourceTree)
             it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
             it.outputs.upToDateWhen { false }
@@ -587,10 +552,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
         val idempotence = project.tasks.register("mineKotFormatIdempotence", MineKotFormatIdempotenceTask::class.java) {
             it.group = "verification"
-            it.description = "Requires byte-identical MineKot formatter verification pass."
-            it.dependsOn(verificationPass)
+            it.description = "Requires a byte-identical second MineKot formatter pass."
+            it.dependsOn(secondPass)
             it.projectDirectory.set(stagingDirectory)
-            it.snapshotFile.set(project.layout.buildDirectory.file("tmp/minekot/format-converged.json"))
+            it.snapshotFile.set(snapshotFile)
         }
         val stagedSourceVerification =
             project.tasks.register("mineKotFormatVerifyStagedSources", VerifyMineKotCodestyleTask::class.java) {
@@ -599,32 +564,25 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 it.dependsOn(idempotence)
                 it.projectDirectory.set(stagingDirectory)
             }
-        val stagedCompilation = project.tasks.register("mineKotFormatCompileStaged", JavaExec::class.java) { task ->
+        val stagedCompilation = project.tasks.register("mineKotFormatCompileStaged") { task ->
             task.group = "verification"
-            task.description = "Compiles staged production and test Kotlin sources before publication."
-            task.dependsOn(idempotence)
-            task.classpath(project.configurations.getByName("mineKotStagedCompiler"))
-            task.mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
-            val destination = project.layout.buildDirectory.dir("tmp/minekot/format-classes")
-            task.outputs.dir(destination)
-            task.doFirst {
-                destination.get().asFile.mkdirs()
-                task.setArgs(
-                    stagedCompilerArguments(
-                        compilableSourceTree.files,
-                        project.configurations.getByName("testCompileClasspath").asPath,
-                        destination.get().asFile.absolutePath,
-                        project.extensions.getByType(MineKotToolchainExtension::class.java).build.javaVersion.get(),
-                    ),
-                )
-            }
+            task.description = "Compiles each staged Kotlin/JVM compilation before publication."
         }
+        registerStagedKotlinCompilationChildren(
+            project = project,
+            stagingDirectory = stagingDirectory,
+            prerequisite = idempotence,
+            aggregate = stagedCompilation,
+            childTaskPrefix = "mineKotFormatCompileStaged",
+            outputDirectoryName = "format-classes",
+        )
         val apply = project.tasks.register("mineKotFormatApply", MineKotFormatApplyTask::class.java) {
             it.group = "minekot"
             it.description = "Transactionally applies the validated staged formatting result."
             it.dependsOn(stagedSourceVerification, stagedCompilation)
             it.projectDirectory.set(project.layout.projectDirectory)
             it.stagingDirectory.set(stagingDirectory)
+            it.baselineFile.set(baselineFile)
         }
         project.tasks.named("mineKotFormat") {
             it.dependsOn(apply)
@@ -637,20 +595,432 @@ class MineKotToolchainPlugin : Plugin<Project> {
         }
     }
 
-    private fun stagedCompilerArguments(
-        sourceFiles: Set<java.io.File>,
-        compilationClasspath: String,
-        destination: String,
-        javaVersion: Int,
-    ): List<String> =
-        listOf(
-            "-classpath",
-            compilationClasspath,
-            "-d",
-            destination,
-            "-jvm-target",
-            javaVersion.toString(),
-        ) + sourceFiles.map(java.io.File::getAbsolutePath).sorted()
+    @OptIn(InternalKotlinGradlePluginApi::class)
+    private fun configureMineKotAssistCompilation(project: Project) {
+        val extension = project.extensions.getByType(MineKotToolchainExtension::class.java)
+        registerStagedKotlinCompilationChildren(
+            project = project,
+            stagingDirectory = extension.lint.assistReportDirectory.map { directory -> directory.dir("staged") },
+            prerequisite = project.tasks.named("mineKotAssistStage"),
+            aggregate = project.tasks.named("mineKotAssistCompileStaged"),
+            childTaskPrefix = "mineKotAssistCompileStaged",
+            outputDirectoryName = "assist-classes",
+        )
+    }
+
+    /**
+     * Registers isolated compiler tasks without resolving compilation classpaths during task discovery.
+     *
+     * Original associated-compilation outputs are removed from each staged classpath before their staged equivalents
+     * are added. This prevents Gradle from inferring dependencies on the original compile and generation tasks.
+     *
+     * @param project Kotlin/JVM project receiving the staged compiler tasks.
+     * @param stagingDirectory isolated mirror containing staged repository sources.
+     * @param prerequisite task that prepares and validates the staged source mirror.
+     * @param aggregate lifecycle task that depends on every staged compiler task.
+     * @param childTaskPrefix prefix used for per-compilation task names.
+     * @param outputDirectoryName build-directory segment receiving staged compiler outputs.
+     */
+    @Suppress("DEPRECATION")
+    @OptIn(ExperimentalKotlinGradlePluginApi::class, InternalKotlinGradlePluginApi::class)
+    private fun registerStagedKotlinCompilationChildren(
+        project: Project,
+        stagingDirectory: Provider<Directory>,
+        prerequisite: TaskProvider<out org.gradle.api.Task>,
+        aggregate: TaskProvider<out org.gradle.api.Task>,
+        childTaskPrefix: String,
+        outputDirectoryName: String,
+    ) {
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        val compilations = orderKotlinCompilations(kotlin.target.compilations.toList())
+        validateStagedGeneratorRegistrations(project, compilations)
+        val stagedTasks = mutableMapOf<KotlinCompilation<*>, TaskProvider<MineKotStagedKotlinCompileTask>>()
+        compilations.forEach { compilation ->
+            val compileTask = project.tasks.named(compilation.compileKotlinTaskName, KotlinCompile::class.java)
+            val originalCompile = compileTask.get()
+            val compilationName = compilation.name
+            val taskSuffix = compilationName.replaceFirstChar(Char::uppercaseChar)
+            val destination = project.layout.buildDirectory.dir("tmp/minekot/${outputDirectoryName}/${compilationName}")
+            val associatedStagedOutputs = compilation.allAssociatedCompilations.mapNotNull { associated ->
+                val staged = stagedTasks[associated] ?: return@mapNotNull null
+                val original = project.tasks.named(
+                    associated.compileKotlinTaskName,
+                    KotlinCompile::class.java,
+                ).get()
+                original.destinationDirectory.get().asFile.absolutePath to
+                        staged.flatMap { stagedTask -> stagedTask.destination }
+            }.toMap()
+            val kspTaskName = compileTask.name.replaceFirst("compile", "ksp")
+            val stagedKsp = if (project.pluginManager.hasPlugin(KSP_PLUGIN_ID)) {
+                MineKotKspStaging.register(
+                    project = project,
+                    compilation = compilation,
+                    compileTask = compileTask,
+                    stagingDirectory = stagingDirectory,
+                    prerequisite = prerequisite,
+                    childTaskPrefix = childTaskPrefix,
+                    outputDirectoryName = outputDirectoryName,
+                    associatedStagedOutputs = associatedStagedOutputs,
+                )
+            } else {
+                null
+            }
+            val generatorPlan = stagedGeneratorPlan(
+                project = project,
+                compilationName = compilationName,
+                outputDirectoryName = outputDirectoryName,
+                originalCompile = originalCompile,
+                kspTaskPath = stagedKsp?.let { project.tasks.named(kspTaskName).get().path },
+            )
+            val projectRoot = project.layout.projectDirectory.asFile.toPath().toAbsolutePath().normalize()
+            val buildRoot = project.layout.buildDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+            val stagingRoot = stagingDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+            val originalKotlinSourcePaths = originalCompile.sources.files
+                .filter { source -> source.isFile && source.extension in setOf("kt", "kts") }
+                .map(java.io.File::getAbsolutePath)
+                .sorted()
+            val replacedDependencyTaskPaths = compilation.allAssociatedCompilations
+                .flatMap { associatedCompilation ->
+                    associatedCompilation.output.classesDirs.buildDependencies
+                        .getDependencies(originalCompile)
+                        .map(org.gradle.api.Task::getPath) +
+                            listOf(
+                                project.tasks.named(associatedCompilation.compileKotlinTaskName).get().path,
+                                project.tasks.named(associatedCompilation.compileAllTaskName).get().path,
+                            )
+                }
+                .toSet()
+            val sourceMappings = originalCompile.sources.files
+                .asSequence()
+                .filter(java.io.File::isFile)
+                .filter { source -> source.extension in setOf("kt", "kts") }
+                .map { source -> source.toPath().toAbsolutePath().normalize() }
+                .filter { source -> source.startsWith(projectRoot) && !source.startsWith(buildRoot) }
+                .associate { source ->
+                    source.toString() to stagingRoot.resolve(projectRoot.relativize(source)).toString()
+                }
+            val stagedTask = project.tasks.register(
+                "${childTaskPrefix}${taskSuffix}",
+                MineKotStagedKotlinCompileTask::class.java,
+            ) { task ->
+                task.group = "verification"
+                task.description = "Compiles staged Kotlin ${compilationName} sources."
+                task.dependsOn(
+                    prerequisite,
+                    generatorPlan.retainedProducers,
+                    generatorPlan.stagedProducers,
+                )
+                task.compilerClasspath.from(project.configurations.getByName("mineKotStagedCompiler"))
+                task.compilationClasspath.from(
+                    project.provider {
+                        originalCompile.libraries.files.filter { dependency ->
+                            val replacedRoots = (stagedKsp?.originalOutputRoots?.get().orEmpty() +
+                                    generatorPlan.originalOutputRoots + associatedStagedOutputs.keys)
+                                .map { path -> java.io.File(path).toPath().toAbsolutePath().normalize() }
+                            val path = dependency.toPath().toAbsolutePath().normalize()
+                            replacedRoots.none(path::startsWith)
+                        }
+                    },
+                )
+                task.dependsOn(
+                    originalCompile.libraries.buildDependencies.getDependencies(originalCompile)
+                        .filterNot { dependency ->
+                            dependency == originalCompile || dependency.path in replacedDependencyTaskPaths ||
+                                    dependency.path == stagedKsp?.let { project.tasks.named(kspTaskName).get().path }
+                        },
+                )
+                task.compilerArguments.set(
+                    project.provider {
+                        ArgumentUtils.convertArgumentsToStringList(
+                            originalCompile.createCompilerArguments(
+                                KotlinCompilerArgumentsProducer.CreateCompilerArgumentsContext.default,
+                            ),
+                        )
+                    },
+                )
+                task.sourcePathMappings.set(sourceMappings)
+                task.associatedOutputMappings.putAll(generatorPlan.outputMappings)
+                task.unsupportedGeneratorProvenance.set(generatorPlan.unsupportedGenerators)
+                task.originalKotlinSourcePaths.set(originalKotlinSourcePaths)
+                task.compilationKotlinSources.from(sourceMappings.values)
+                task.compilationKotlinSources.from(
+                    project.provider {
+                        val replacedRoots = (stagedKsp?.originalOutputRoots?.get().orEmpty() +
+                                generatorPlan.originalOutputRoots + associatedStagedOutputs.keys)
+                            .map { path -> java.io.File(path).toPath().toAbsolutePath().normalize() }
+                        originalCompile.sources.files.filter { source ->
+                            val path = source.toPath().toAbsolutePath().normalize()
+                            source.isFile && source.extension in setOf("kt", "kts") && path.startsWith(buildRoot) &&
+                                    replacedRoots.none(path::startsWith)
+                        }
+                    },
+                )
+                generatorPlan.stagedOutputs.forEach { stagedOutput ->
+                    task.compilationKotlinSources.from(
+                        project.fileTree(stagedOutput) { files -> files.include("**/*.kt", "**/*.kts") },
+                    )
+                }
+                if (stagedKsp != null) {
+                    task.dependsOn(stagedKsp.task)
+                    task.associatedOutputMappings.putAll(stagedKsp.outputMappings)
+                    task.compilationClasspath.from(stagedKsp.classOutput)
+                    task.unsupportedGeneratedJavaSources.from(
+                        project.fileTree(stagedKsp.javaOutput) { files -> files.include("**/*.java") },
+                    )
+                    task.compilationKotlinSources.from(
+                        project.fileTree(stagedKsp.kotlinOutput) { files -> files.include("**/*.kt", "**/*.kts") },
+                    )
+                }
+                task.originalDestinationPath.set(
+                    originalCompile.destinationDirectory.get().asFile.absolutePath,
+                )
+                task.destination.set(destination)
+            }
+            stagedTasks[compilation] = stagedTask
+            aggregate.configure { task -> task.dependsOn(stagedTask) }
+        }
+        compilations.forEach { compilation ->
+            val stagedTask = stagedTasks.getValue(compilation)
+            compilation.allAssociatedCompilations.forEach { associatedCompilation ->
+                val associatedStagedTask = stagedTasks[associatedCompilation] ?: return@forEach
+                val associatedCompileTask = project.tasks.named(
+                    associatedCompilation.compileKotlinTaskName,
+                    KotlinCompile::class.java,
+                )
+                val originalAssociatedCompile = project.providers.provider { associatedCompileTask.get() }
+                stagedTask.configure { task ->
+                    task.dependsOn(associatedStagedTask)
+                    task.compilationClasspath.from(associatedStagedTask.flatMap { staged -> staged.destination })
+                    task.associatedOutputMappings.putAll(
+                        originalAssociatedCompile.zip(associatedStagedTask) { original, staged ->
+                            mapOf(
+                                original.destinationDirectory.get().asFile.absolutePath to
+                                        staged.destination.get().asFile.absolutePath,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    private fun orderKotlinCompilations(
+        compilations: List<KotlinCompilation<*>>,
+    ): List<KotlinCompilation<*>> {
+        val ordered = mutableListOf<KotlinCompilation<*>>()
+        val visiting = mutableSetOf<KotlinCompilation<*>>()
+        val visited = mutableSetOf<KotlinCompilation<*>>()
+        fun visit(compilation: KotlinCompilation<*>) {
+            if (compilation in visited) return
+            require(visiting.add(compilation)) {
+                "Cyclic Kotlin compilation association at ${compilation.name}."
+            }
+            compilation.allAssociatedCompilations
+                .filter(compilations::contains)
+                .forEach(::visit)
+            visiting.remove(compilation)
+            visited += compilation
+            ordered += compilation
+        }
+        compilations.forEach(::visit)
+        return ordered
+    }
+
+    private fun validateStagedGeneratorRegistrations(
+        project: Project,
+        compilations: List<KotlinCompilation<*>>,
+    ) {
+        val compilationNames = compilations.mapTo(mutableSetOf()) { compilation -> compilation.name }
+        val extension = project.extensions.getByType(MineKotToolchainExtension::class.java)
+        extension.stagedCompilation.generators.forEach { generator ->
+            require(generator.compilationName.isPresent) {
+                "Staged Kotlin generator ${generator.name} requires compilationName."
+            }
+            require(generator.compilationName.get() in compilationNames) {
+                "Staged Kotlin generator ${generator.name} references unknown compilation " +
+                        "${generator.compilationName.get()}."
+            }
+            require(generator.originalKotlinOutput.isPresent) {
+                "Staged Kotlin generator ${generator.name} requires originalKotlinOutput."
+            }
+            require(generator.formatKotlinOutput.isPresent && generator.assistKotlinOutput.isPresent) {
+                "Staged Kotlin generator ${generator.name} requires formatKotlinOutput and assistKotlinOutput."
+            }
+        }
+    }
+
+    private fun stagedGeneratorPlan(
+        project: Project,
+        compilationName: String,
+        outputDirectoryName: String,
+        originalCompile: KotlinCompile,
+        kspTaskPath: String?,
+    ): StagedGeneratorPlan {
+        val extension = project.extensions.getByType(MineKotToolchainExtension::class.java)
+        val buildRoot = project.layout.buildDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+        val isolatedRoot = buildRoot.resolve("tmp/minekot")
+        val registrations = extension.stagedCompilation.generators
+            .filter { generator -> generator.compilationName.orNull == compilationName }
+        val originalOutputRoots = registrations.map { generator ->
+            generator.originalKotlinOutput.get().asFile.absolutePath
+        }
+        requireNoOverlappingPaths(originalOutputRoots, "original", compilationName)
+        val outputMappings = registrations.associate { generator ->
+            val stagedOutput = if (outputDirectoryName.startsWith("format")) {
+                generator.formatKotlinOutput
+            } else {
+                generator.assistKotlinOutput
+            }
+            val formatInputRoot = buildRoot.resolve("tmp/minekot/format-sources")
+            val assistInputRoot = extension.lint.assistReportDirectory.get().asFile.toPath()
+                .toAbsolutePath()
+                .normalize()
+                .resolve("staged")
+            listOf(
+                generator.formatKotlinOutput to formatInputRoot,
+                generator.assistKotlinOutput to assistInputRoot,
+            ).forEach { (output, expectedInputRoot) ->
+                val path = output.get().asFile.toPath().toAbsolutePath().normalize()
+                require(path.startsWith(isolatedRoot)) {
+                    "Staged Kotlin generator ${generator.name} output must be under ${isolatedRoot}."
+                }
+                val producers = project.files(output).buildDependencies.getDependencies(originalCompile)
+                require(producers.isNotEmpty()) {
+                    "Staged Kotlin generator ${generator.name} output must have a producer task."
+                }
+                require(
+                    producers.all { producer ->
+                        producer.outputs.files.files.all { producerOutput ->
+                            producerOutput.toPath().toAbsolutePath().normalize().startsWith(isolatedRoot)
+                        }
+                    },
+                ) {
+                    "Staged Kotlin generator ${generator.name} producer outputs must remain under ${isolatedRoot}."
+                }
+                require(
+                    producers.any { producer ->
+                        producer.outputs.files.files.any { producerOutput ->
+                            val producerPath = producerOutput.toPath().toAbsolutePath().normalize()
+                            path.startsWith(producerPath) || producerPath.startsWith(path)
+                        }
+                    },
+                ) {
+                    "Staged Kotlin generator ${generator.name} producer does not own ${path}."
+                }
+                require(
+                    producers.any { producer ->
+                        producer.inputs.files.files.any { input ->
+                            input.toPath().toAbsolutePath().normalize().startsWith(expectedInputRoot)
+                        }
+                    },
+                ) {
+                    "Staged Kotlin generator ${generator.name} producer must declare input under ${expectedInputRoot}."
+                }
+            }
+            generator.originalKotlinOutput.get().asFile.absolutePath to stagedOutput.get().asFile.absolutePath
+        }
+        val sourceProducers = originalCompile.sources.buildDependencies.getDependencies(originalCompile)
+            .filterNot { producer -> producer == originalCompile || producer.path == kspTaskPath }
+        registrations.forEach { generator ->
+            val originalRoot = generator.originalKotlinOutput.get().asFile.toPath().toAbsolutePath().normalize()
+            val owned = sourceProducers.any { producer ->
+                producer.outputs.files.files.any { output ->
+                    val path = output.toPath().toAbsolutePath().normalize()
+                    originalRoot.startsWith(path) || path.startsWith(originalRoot)
+                }
+            }
+            require(owned) {
+                "Staged Kotlin generator ${generator.name} original output is not produced for " +
+                        "compilation ${compilationName}."
+            }
+        }
+        requireNoOverlappingPaths(
+            registrations.flatMap { generator ->
+                listOf(generator.formatKotlinOutput, generator.assistKotlinOutput)
+                    .map { output -> output.get().asFile.absolutePath }
+            },
+            "staged",
+            compilationName,
+        )
+        val originalRootPaths = originalOutputRoots.map { path ->
+            java.io.File(path).toPath().toAbsolutePath().normalize()
+        }
+        val retainedProducers = mutableListOf<org.gradle.api.Task>()
+        val unsupported = mutableListOf<String>()
+        sourceProducers.forEach { producer ->
+            val producerOutputs = producer.outputs.files.files.map { output ->
+                output.toPath().toAbsolutePath().normalize()
+            }
+            val registered = producerOutputs.any { output ->
+                originalRootPaths.any { root -> root.startsWith(output) || output.startsWith(root) }
+            }
+            if (!registered) {
+                val repositoryKotlinInputs = producer.inputs.files.files.filter { input ->
+                    val path = input.toPath().toAbsolutePath().normalize()
+                    input.isFile && input.extension in setOf("kt", "kts") &&
+                            path.startsWith(
+                                project.layout.projectDirectory.asFile.toPath().toAbsolutePath().normalize(),
+                            ) &&
+                            !path.startsWith(buildRoot)
+                }
+                if (repositoryKotlinInputs.isEmpty()) {
+                    retainedProducers += producer
+                } else {
+                    unsupported += "${compilationName}: ${producer.path} reads repository Kotlin; register " +
+                            "minekotToolchain.stagedCompilation.generators.${producer.name} with isolated format/assist outputs"
+                }
+            }
+        }
+        return StagedGeneratorPlan(
+            originalOutputRoots = originalOutputRoots,
+            outputMappings = outputMappings,
+            stagedOutputs = registrations.map { generator ->
+                if (outputDirectoryName.startsWith("format")) {
+                    generator.formatKotlinOutput
+                } else {
+                    generator.assistKotlinOutput
+                }
+            },
+            retainedProducers = retainedProducers,
+            stagedProducers = registrations.flatMap { generator ->
+                val stagedOutput = if (outputDirectoryName.startsWith("format")) {
+                    generator.formatKotlinOutput
+                } else {
+                    generator.assistKotlinOutput
+                }
+                project.files(stagedOutput).buildDependencies.getDependencies(originalCompile)
+            },
+            unsupportedGenerators = unsupported,
+        )
+    }
+
+    private fun requireNoOverlappingPaths(paths: List<String>, kind: String, compilationName: String) {
+        val normalized = paths.map { path -> java.io.File(path).toPath().toAbsolutePath().normalize() }
+        val overlaps = normalized.indices.any { first ->
+            normalized.indices.any { second ->
+                first != second &&
+                        (normalized[first].startsWith(normalized[second]) || normalized[second].startsWith(normalized[first]))
+            }
+        }
+        require(!overlaps) {
+            "Staged Kotlin generator ${kind} outputs overlap for compilation ${compilationName}."
+        }
+    }
+
+    private data class StagedGeneratorPlan(
+        val originalOutputRoots: List<String>,
+        val outputMappings: Map<String, String>,
+        val stagedOutputs: List<Provider<Directory>>,
+        val retainedProducers: List<org.gradle.api.Task>,
+        val stagedProducers: List<org.gradle.api.Task>,
+        val unsupportedGenerators: List<String>,
+    )
+
+    private fun kotlinCompilerVersion(): String =
+        requireNotNull(KotlinCompile::class.java.`package`.implementationVersion) {
+            "Kotlin Gradle plugin does not expose its implementation version."
+        }.substringBefore("-release")
 
     private fun minekotDependency(group: String, moduleName: String, version: String): String =
         "${group}:${moduleName}:${version}"
@@ -740,6 +1110,8 @@ class MineKotToolchainPlugin : Plugin<Project> {
 
     private companion object {
         private const val DETEKT_PROVIDER_SERVICE: String = "META-INF/services/dev.detekt.api.RuleSetProvider"
+        private const val KSP_PLUGIN_ID: String = "com.google.devtools.ksp"
+        private val fullAnalysisTaskNames: Set<String> = setOf("detektMain", "detektTest")
         private const val DEFAULT_RELEASES_URL = "https://maven2.minekot.org/releases"
         private const val DEFAULT_SNAPSHOTS_URL = "https://maven2.minekot.org/snapshots"
 

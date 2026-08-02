@@ -45,6 +45,7 @@ bin/
 .env
 /.local/
 /final/*
+SCRATCHPAD.md
 
 ### AI Agents ###
 .junie/

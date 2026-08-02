@@ -20,7 +20,7 @@ internal class MineKotTextEdits {
     }
 
     /**
-     * Replaces a source range when auto-correction is enabled.
+     * Replaces a source range when autocorrection is enabled.
      *
      * @param startOffset Inclusive source offset.
      * @param endOffset Exclusive source offset.
@@ -47,7 +47,7 @@ internal class MineKotTextEdits {
      * Applies all non-overlapping edits from the end of the file to the beginning.
      *
      * @param file Visited Kotlin file.
-     * @param enabled Whether the owning rule has auto-correction enabled.
+     * @param enabled Whether the owning rule has autocorrection enabled.
      * @param allowPartialSyntax Whether this byte-level edit is safe when PSI contains syntax errors.
      */
     fun applyTo(

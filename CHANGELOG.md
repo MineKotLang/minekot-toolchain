@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.0 - 2026-07-30
+
+### Breaking changes
+
+- Remove semantic-review receipt tasks and extension properties; `check` now contains deterministic verification only.
+- Reject Kotlin Multiplatform projects explicitly until target-specific staged compilers are supported.
+
+### Features
+
+- Add typed `mineKotRunCatching` boundaries that preserve cancellation, fatal errors, and unrelated failures.
+- Add compiler-analysis Detekt rules for bounded API, coroutine, Adventure text, and nested-receiver checks.
+- Compile formatter and assisted-fix staging per Kotlin/JVM compilation with original compiler options, plugins, classpaths, generated-source producers, and associated staged outputs.
+- Add explicit staged-generator contracts and a KSP 2.3.10 adapter with isolated formatter and assisted outputs.
+
+### Fixes
+
+- Require formatter corrections to converge after one pass and remain byte-identical on the second pass.
+- Reject unsafe generated-source provenance, generated KSP Java, concurrent formatter edits, and stale assisted source snapshots before publication.
+- Keep staged compiler registration lazy and replace original associated-compilation outputs without scheduling original compile or KSP tasks.
+- Run compilation-aware Detekt tasks from `check` so Analysis API rules receive source-set classpaths.
+
+### Deprecations
+
+- Disable heuristic `KotlinxPreference`; use resolved API preference checks while compatibility remains.
+
 ## 1.2.1 - 2026-07-22
 
 ### Fixes

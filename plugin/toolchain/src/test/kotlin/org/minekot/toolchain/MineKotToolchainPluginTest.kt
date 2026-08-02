@@ -1,13 +1,15 @@
 package org.minekot.toolchain
 
 import kotlinx.serialization.json.Json
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Instant
+import java.util.*
 
 class MineKotToolchainPluginTest {
     @Test
@@ -171,24 +173,45 @@ class MineKotToolchainPluginTest {
         val projectDirectory = createProject()
         writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
 
-        runGradle(
-            projectDirectory,
-            "check",
-            "-x",
-            "verifyMineKotCodestyle",
-            "-x",
-            "verifyMineKotSemanticReview",
-        )
-        val result = runGradle(
-            projectDirectory,
-            "check",
-            "-x",
-            "verifyMineKotCodestyle",
-            "-x",
-            "verifyMineKotSemanticReview",
-        )
+        runGradle(projectDirectory, "check", "-x", "verifyMineKotCodestyle")
+        val result = runGradle(projectDirectory, "check", "-x", "verifyMineKotCodestyle")
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":check")?.outcome)
+    }
+
+    @Test
+    fun `plugin exposes deterministic verification tasks only`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+
+        val result = runGradle(projectDirectory, "tasks", "--all")
+
+        assertTrue(result.output.contains("verifyMineKotCodestyle"))
+        assertFalse(result.output.contains("mineKotReviewPreview"))
+        assertFalse(result.output.contains("verifyMineKotSemanticReview"))
+    }
+
+    @Test
+    fun `staged compiler registration does not resolve compilation classpaths`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+        writeGradleProperties(projectDirectory, "minekotToolchain.toolchainVersion=unpublished-test-version")
+
+        val result = runGradle(projectDirectory, "tasks", "--all")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":tasks")?.outcome)
+        assertTrue(result.output.contains("mineKotAssistCompileStagedMain"))
+    }
+
+    @Test
+    fun `check includes full analysis Detekt tasks`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+
+        val result = runGradle(projectDirectory, "check", "--dry-run")
+
+        assertTrue(result.output.contains(":detektMain SKIPPED"), result.output)
+        assertTrue(result.output.contains(":detektTest SKIPPED"), result.output)
     }
 
     @Test
@@ -323,7 +346,7 @@ class MineKotToolchainPluginTest {
             .findAll(detektConfig.substringBefore("\nstyle:"))
             .map { match -> match.groupValues[1] }
             .toSet()
-        val activeMineKotRules = setOf(
+        val configuredRuleNames = setOf(
             "ForbiddenTryCatch",
             "StringTemplateBraces",
             "MiniMessageText",
@@ -342,26 +365,33 @@ class MineKotToolchainPluginTest {
             "ExplicitScopeInNestedScope",
             "ResolvedApiPreference",
         )
+        val activeMineKotRules = configuredRuleNames - "KotlinxPreference"
 
-        assertEquals(activeMineKotRules, configuredMineKotRules)
+        assertEquals(configuredRuleNames, configuredMineKotRules)
         activeMineKotRules.forEach { ruleName ->
             assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true"))
         }
+        assertTrue(detektConfig.contains("    KotlinxPreference:\n        active: false"))
         val autoCorrectableMineKotRules = setOf(
             "StringTemplateBraces",
             "TrailingComma",
             "GradleDslConventions",
-            "ImportPolicy",
             "SourceFilePolicy",
             "CommentFormatting",
-            "ResultHandling",
-            "KotlinxPreference",
-            "ForEachPreference",
-            "ExplicitScopeInNestedScope",
             "LineWrapping",
         )
         autoCorrectableMineKotRules.forEach { ruleName ->
             assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true\n        autoCorrect: true"))
+        }
+        setOf(
+            "ResultHandling",
+            "KotlinxPreference",
+            "ForEachPreference",
+            "ImportPolicy",
+            "ExplicitScopeInNestedScope",
+        ).forEach { ruleName ->
+            val ruleConfig = detektConfig.substringAfter("    ${ruleName}:").substringBefore("\n    ")
+            assertFalse(ruleConfig.contains("autoCorrect: true"))
         }
         assertTrue(detektConfig.contains("maxLineLength: 120"))
         assertTrue(detektConfig.contains("    NewLineAtEndOfFile:\n        active: true"))
@@ -541,45 +571,6 @@ class MineKotToolchainPluginTest {
     }
 
     @Test
-    fun `semantic review reports missing confirmation document`() {
-        val projectDirectory = createProject()
-        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
-
-        val result = runGradleAndFail(projectDirectory, "verifyMineKotSemanticReview")
-
-        assertTrue(result.output.contains("Missing MineKot semantic review; run mineKotReviewPreview"))
-        assertFalse(result.output.contains("A problem was found with the configuration of task"))
-    }
-
-    @Test
-    fun `semantic review requires current fingerprint and complete confirmation`() {
-        val projectDirectory = createProject()
-        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
-        val source = projectDirectory.resolve("src/main/kotlin/Example.kt")
-        Files.createDirectories(source.parent)
-        source.toFile().writeText("val value: Int = 1\n")
-
-        runGradle(projectDirectory, "mineKotReviewPreview")
-        val previewFile = projectDirectory.resolve("build/reports/minekot/semantic-review.json")
-        val preview = assistJson.decodeFromString<MineKotSemanticReviewDocument>(previewFile.toFile().readText())
-        val confirmed = preview.copy(
-            reviewer = "MineKot reviewer",
-            reviewedAt = Instant.now().toString(),
-            checks = preview.checks.map { check -> check.copy(confirmed = true) },
-        )
-        projectDirectory.resolve("minekot-review.json").toFile().writeText(
-            assistJson.encodeToString(confirmed) + "\n",
-        )
-
-        val valid = runGradle(projectDirectory, "verifyMineKotSemanticReview")
-        assertEquals(TaskOutcome.SUCCESS, valid.task(":verifyMineKotSemanticReview")?.outcome)
-
-        source.toFile().appendText("val changed: Int = 2\n")
-        val stale = runGradleAndFail(projectDirectory, "verifyMineKotSemanticReview")
-        assertTrue(stale.output.contains("sourceFingerprint is stale"))
-    }
-
-    @Test
     fun `assisted preview never mutates and confirmed apply is fingerprint gated`() {
         val projectDirectory = createProject()
         writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
@@ -620,6 +611,8 @@ class MineKotToolchainPluginTest {
 
         val apply = runGradle(projectDirectory, "mineKotAssistApply")
 
+        assertEquals(TaskOutcome.SUCCESS, apply.task(":mineKotAssistCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, apply.task(":mineKotAssistCompileStagedTest")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, apply.task(":mineKotAssistApply")?.outcome)
         assertTrue(sourceFile.toFile().readText().contains("private const val ANSWER_VALUE: Int = 42"))
         assertTrue(sourceFile.toFile().readText().contains("fun answer(): Int = ANSWER_VALUE"))
@@ -811,8 +804,22 @@ class MineKotToolchainPluginTest {
         val result = runGradle(projectDirectory, "mineKotFormat")
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormat")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatFirstPass")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatSnapshot")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatSecondPass")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatIdempotence")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatVerifyStagedSources")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStaged")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedTest")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatApply")?.outcome)
+        assertFalse(result.output.contains("mineKotFormatConvergencePass"))
+        assertFalse(result.output.contains("mineKotFormatVerificationPass"))
         assertTrue(sourceFile.toFile().readText().contains("\"Hello ${'$'}{name}\""))
+
+        val repeatedResult = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, repeatedResult.task(":mineKotFormatCompileStaged")?.outcome)
     }
 
     @Test
@@ -834,6 +841,557 @@ class MineKotToolchainPluginTest {
         runGradleAndFail(projectDirectory, "mineKotFormat")
 
         assertEquals(original, sourceFile.toFile().readText())
+    }
+
+    @Test
+    fun `mineKotFormat rejects concurrent repository source changes`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            val mutateAfterFormatStage by tasks.registering {
+                dependsOn("mineKotFormatIdempotence")
+                doLast { file("src/main/kotlin/Concurrent.kt").appendText("// concurrent change\\n") }
+            }
+            tasks.matching { it.name == "mineKotFormatApply" }.configureEach {
+                dependsOn(mutateAfterFormatStage)
+            }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Concurrent.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("internal fun concurrent(name: String): String = \"Hello ${'$'}name\"\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradleAndFail(projectDirectory, "mineKotFormat")
+
+        assertTrue(result.output.contains("Repository sources changed during mineKotFormat"), result.output)
+        assertTrue(sourceFile.toFile().readText().contains("Hello ${'$'}name"))
+        assertTrue(sourceFile.toFile().readText().contains("concurrent change"))
+    }
+
+    @Test
+    fun `staged formatter keeps main and test compilation classpaths isolated`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\ndependencies { testImplementation(\"org.junit.jupiter:junit-jupiter-api:5.11.4\") }\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/InvalidMain.kt")
+        Files.createDirectories(sourceFile.parent)
+        val original = "import org.junit.jupiter.api.Test\n\n@Test\nfun invalidMain(): Unit = Unit\n"
+        sourceFile.toFile().writeText(original)
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradleAndFail(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.FAILED, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertNull(result.task(":compileKotlin"))
+        assertTrue(result.output.contains("unresolved reference 'junit'", ignoreCase = true), result.output)
+        assertEquals(original, sourceFile.toFile().readText())
+    }
+
+    @Test
+    fun `staged formatter compiles test sources against staged main and test dependencies`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\ndependencies { testImplementation(\"org.junit.jupiter:junit-jupiter-api:5.11.4\") }\n",
+        )
+        val mainSource = projectDirectory.resolve("src/main/kotlin/InternalValue.kt")
+        val testSource = projectDirectory.resolve("src/test/kotlin/InternalValueTest.kt")
+        Files.createDirectories(mainSource.parent)
+        Files.createDirectories(testSource.parent)
+        mainSource.toFile().writeText("internal fun internalValue(): String = \"value\"\n")
+        testSource.toFile().writeText(
+            "import org.junit.jupiter.api.Test\n\n@Test\nfun readsInternalValue(): Unit { internalValue() }\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedTest")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter retains project dependency producer wiring`() {
+        val projectDirectory = createProject()
+        projectDirectory.resolve("settings.gradle.kts").toFile().appendText("\ninclude(\":dependency\")\n")
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\ndependencies { implementation(project(\":dependency\")) }\n",
+        )
+        val dependencyDirectory = projectDirectory.resolve("dependency")
+        Files.createDirectories(dependencyDirectory)
+        dependencyDirectory.resolve("build.gradle.kts").toFile().writeText(
+            "plugins { kotlin(\"jvm\") }\n",
+        )
+        val dependencySource = dependencyDirectory.resolve("src/main/kotlin/DependencyValue.kt")
+        Files.createDirectories(dependencySource.parent)
+        dependencySource.toFile()
+            .writeText("package dependency\n\nobject DependencyValue { val value: String = \"value\" }\n")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Consumer.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            "import dependency.DependencyValue\n\ninternal fun consumeDependency(): String = DependencyValue.value\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertNotNull(result.task(":dependency:compileKotlin"))
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter discovers custom Kotlin source roots`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\nkotlin { sourceSets.main { kotlin.srcDir(\"custom-kotlin\") } }\n",
+        )
+        val sourceFile = projectDirectory.resolve("custom-kotlin/Custom.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("fun custom(name: String): String = \"Hello ${'$'}name\"\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertTrue(sourceFile.toFile().readText().contains("${'$'}{name}"))
+    }
+
+    @Test
+    fun `staged formatter models custom JVM compilations`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            kotlin.target.compilations.create("integrationTest") {
+                associateWith(kotlin.target.compilations.getByName("main"))
+            }
+            """.trimIndent() + "\n",
+        )
+        val mainSource = projectDirectory.resolve("src/main/kotlin/InternalMain.kt")
+        val integrationSource = projectDirectory.resolve("src/integrationTest/kotlin/IntegrationValue.kt")
+        Files.createDirectories(mainSource.parent)
+        Files.createDirectories(integrationSource.parent)
+        mainSource.toFile().writeText("internal fun internalMain(): String = \"main\"\n")
+        integrationSource.toFile().writeText("internal fun integrationValue(): String = internalMain()\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedIntegrationTest")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter rejects unregistered source-derived generators`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            val generatedDirectory = layout.buildDirectory.dir("generated/source-derived")
+            val generateSourceDerived by tasks.registering {
+                inputs.file("src/main/kotlin/GeneratorInput.kt")
+                outputs.dir(generatedDirectory)
+                doLast {
+                    generatedDirectory.get().file("Generated.kt").asFile.apply {
+                        parentFile.mkdirs()
+                        writeText("internal fun generatedFromSource(): String = \\\"generated\\\"\\n")
+                    }
+                }
+            }
+            kotlin { sourceSets.main { kotlin.srcDir(generateSourceDerived) } }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/GeneratorInput.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("internal val generatedFromInput: String = generatedFromSource()\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradleAndFail(projectDirectory, "mineKotFormat")
+
+        assertTrue(result.output.contains("Unsupported staged Kotlin generators"), result.output)
+        assertTrue(result.output.contains(":generateSourceDerived reads repository Kotlin"), result.output)
+    }
+
+    @Test
+    fun `staged formatter runs registered generators against staged sources`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            val originalGenerated = layout.buildDirectory.dir("generated/registered")
+            val formatGenerated = layout.buildDirectory.dir("tmp/minekot/custom-format-generated")
+            val assistGenerated = layout.buildDirectory.dir("tmp/minekot/custom-assist-generated")
+            val formatInput = layout.buildDirectory.file(
+                "tmp/minekot/format-sources/src/main/kotlin/GeneratorInput.kt",
+            )
+            val assistInput = layout.buildDirectory.file(
+                "reports/minekot/staged/src/main/kotlin/GeneratorInput.kt",
+            )
+            val generateOriginal by tasks.registering {
+                inputs.file("src/main/kotlin/GeneratorInput.kt")
+                outputs.dir(originalGenerated)
+                doLast {
+                    originalGenerated.get().file("Generated.kt").asFile.apply {
+                        parentFile.mkdirs()
+                        writeText("internal fun generatedFromSource(): Int = 1\n")
+                    }
+                }
+            }
+            val generateFormat by tasks.registering {
+                dependsOn("mineKotFormatIdempotence")
+                inputs.file(formatInput)
+                outputs.dir(formatGenerated)
+                doLast {
+                    val formatted = formatInput.get().asFile.readText().contains("${'\\'}${'$'}{name}")
+                    val declaration = if (formatted) {
+                        "internal fun generatedFromSource(): String = String()"
+                    } else {
+                        "internal fun generatedFromSource(): Int = 1"
+                    }
+                    formatGenerated.get().file("Generated.kt").asFile.apply {
+                        parentFile.mkdirs()
+                        writeText(declaration + "\n")
+                    }
+                }
+            }
+            val generateAssist by tasks.registering {
+                dependsOn("mineKotAssistStage")
+                inputs.file(assistInput)
+                outputs.dir(assistGenerated)
+                doLast {
+                    val formatted = assistInput.get().asFile.readText().contains("${'\\'}${'$'}{name}")
+                    val declaration = if (formatted) {
+                        "internal fun generatedFromSource(): String = String()"
+                    } else {
+                        "internal fun generatedFromSource(): Int = 1"
+                    }
+                    assistGenerated.get().file("Generated.kt").asFile.apply {
+                        parentFile.mkdirs()
+                        writeText(declaration + "\n")
+                    }
+                }
+            }
+            kotlin { sourceSets.main { kotlin.srcDir(generateOriginal) } }
+            minekotToolchain {
+                stagedCompilation {
+                    generators.register("sourceDerived") {
+                        compilationName.set("main")
+                        originalKotlinOutput.set(originalGenerated)
+                        formatKotlinOutput.set(generateFormat.map { formatGenerated.get() })
+                        assistKotlinOutput.set(generateAssist.map { assistGenerated.get() })
+                    }
+                }
+            }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/GeneratorInput.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            "internal fun generatorInput(name: String): String = \"Hello ${'$'}name\"\n\n" +
+                    "internal val generatedFromInput: String = generatedFromSource()\n\n" +
+                    "internal fun generatedAnswer(): Int = 42\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateFormat")?.outcome)
+        assertNull(result.task(":generateOriginal"))
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertTrue(sourceFile.toFile().readText().contains("${'$'}{name}"))
+
+        runGradle(projectDirectory, "mineKotAssistPreview")
+        val reportFile = projectDirectory.resolve("build/reports/minekot/assisted-fixes.json")
+        val candidate = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+            .candidates.single { candidate ->
+                candidate.action == "magic-number" && candidate.path.endsWith("GeneratorInput.kt")
+            }
+        val request = MineKotAssistRequestDocument(
+            requests = listOf(
+                MineKotAssistRequest(
+                    findingId = candidate.findingId,
+                    action = candidate.action,
+                    options = MineKotMagicNumberOptions(constantName = "GENERATED_ANSWER"),
+                ),
+            ),
+        )
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(assistJson.encodeToString(request) + "\n")
+        runGradle(projectDirectory, "mineKotAssistPreview")
+        val requested = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(
+            assistJson.encodeToString(
+                request.copy(confirmation = MineKotAssistConfirmation(requested.planId, confirmed = true)),
+            ) + "\n",
+        )
+
+        val assisted = runGradle(projectDirectory, "mineKotAssistApply")
+
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":generateAssist")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedMain")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter reruns KSP against formatted sources`() {
+        val projectDirectory = createProject()
+        projectDirectory.resolve("settings.gradle.kts").toFile().appendText("\ninclude(\":processor\")\n")
+        projectDirectory.resolve("build.gradle.kts").toFile().writeText(
+            """
+            plugins {
+                id("org.minekot.toolchain") version "+"
+                id("com.google.devtools.ksp")
+            }
+
+            dependencies {
+                ksp(project(":processor"))
+                kspTest(project(":processor"))
+            }
+            """.trimIndent() + "\n",
+        )
+        val processorDirectory = projectDirectory.resolve("processor")
+        Files.createDirectories(processorDirectory)
+        processorDirectory.resolve("build.gradle.kts").toFile().writeText(
+            """
+            plugins { kotlin("jvm") }
+
+            dependencies {
+                implementation("com.google.devtools.ksp:symbol-processing-api:2.3.10")
+            }
+            """.trimIndent() + "\n",
+        )
+        val processorSource = processorDirectory.resolve("src/main/kotlin/FormattingProcessor.kt")
+        Files.createDirectories(processorSource.parent)
+        processorSource.toFile().writeText(
+            """
+            package processor
+
+            import com.google.devtools.ksp.processing.CodeGenerator
+            import com.google.devtools.ksp.processing.Dependencies
+            import com.google.devtools.ksp.processing.KSPLogger
+            import com.google.devtools.ksp.processing.Resolver
+            import com.google.devtools.ksp.processing.SymbolProcessor
+            import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+            import com.google.devtools.ksp.processing.SymbolProcessorProvider
+            import com.google.devtools.ksp.symbol.KSAnnotated
+            import java.io.File
+
+            class FormattingProcessor(private val codeGenerator: CodeGenerator) : SymbolProcessor {
+                private var generated: Boolean = false
+
+                override fun process(resolver: Resolver): List<KSAnnotated> {
+                    if (generated) return emptyList()
+                    val source = resolver.getAllFiles().firstOrNull { file -> file.fileName == "Source.kt" }
+                        ?: return emptyList()
+                    val formatted = File(source.filePath).readText().contains("${'\\'}${'$'}{name}")
+                    val returnType = if (formatted) "String" else "Int"
+                    val returnValue = if (formatted) "\"generated\"" else "1"
+                    codeGenerator.createNewFile(Dependencies(false, source), "", "Generated").writer().use { writer ->
+                        writer.write("internal fun generatedValue(): ${'$'}returnType = ${'$'}returnValue\n")
+                    }
+                    generated = true
+                    return emptyList()
+                }
+            }
+
+            class FormattingProcessorProvider : SymbolProcessorProvider {
+                override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
+                    FormattingProcessor(environment.codeGenerator)
+            }
+            """.trimIndent() + "\n",
+        )
+        val serviceFile = processorDirectory.resolve(
+            "src/main/resources/META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider",
+        )
+        Files.createDirectories(serviceFile.parent)
+        serviceFile.toFile().writeText("processor.FormattingProcessorProvider\n")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Source.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            "internal fun greeting(name: String): String = \"Hello ${'$'}name\"\n\n" +
+                    "internal val generated: String = generatedValue()\n\n" +
+                    "internal fun kspAnswer(): Int = 42\n",
+        )
+        val testSource = projectDirectory.resolve("src/test/kotlin/KspStagedTest.kt")
+        Files.createDirectories(testSource.parent)
+        testSource.toFile().writeText(
+            "internal fun readsStagedKspMain(): String = generatedValue() + greeting(\"test\")\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedKspMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedKspTest")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedTest")?.outcome)
+        assertNull(result.task(":kspKotlin"))
+        assertNull(result.task(":kspTestKotlin"))
+        assertTrue(sourceFile.toFile().readText().contains("${'$'}{name}"))
+        assertTrue(
+            projectDirectory.resolve("build/tmp/minekot/format-classes-ksp/main/kotlin/Generated.kt")
+                .toFile()
+                .readText()
+                .contains("String"),
+        )
+        runGradle(projectDirectory, "mineKotFormat", "--configuration-cache")
+        val cachedFormat = runGradle(projectDirectory, "mineKotFormat", "--configuration-cache")
+        assertTrue(cachedFormat.output.contains("Reusing configuration cache"), cachedFormat.output)
+
+        runGradle(projectDirectory, "mineKotAssistPreview")
+        val reportFile = projectDirectory.resolve("build/reports/minekot/assisted-fixes.json")
+        val candidate = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+            .candidates.single { candidate -> candidate.action == "magic-number" && candidate.path.endsWith("Source.kt") }
+        val request = MineKotAssistRequestDocument(
+            requests = listOf(
+                MineKotAssistRequest(
+                    findingId = candidate.findingId,
+                    action = candidate.action,
+                    options = MineKotMagicNumberOptions(constantName = "KSP_ANSWER"),
+                ),
+            ),
+        )
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(assistJson.encodeToString(request) + "\n")
+        runGradle(projectDirectory, "mineKotAssistPreview")
+        val requested = assistJson.decodeFromString<MineKotAssistReport>(reportFile.toFile().readText())
+        projectDirectory.resolve("minekot-fixes.json").toFile().writeText(
+            assistJson.encodeToString(
+                request.copy(confirmation = MineKotAssistConfirmation(requested.planId, confirmed = true)),
+            ) + "\n",
+        )
+
+        val assisted = runGradle(projectDirectory, "mineKotAssistApply")
+
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedKspMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedKspTest")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedTest")?.outcome)
+        assertNull(assisted.task(":kspKotlin"))
+        assertNull(assisted.task(":kspTestKotlin"))
+    }
+
+    @Test
+    fun `staged formatter preserves Kotlin compiler plugins`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/SerializableValue.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            """
+            import kotlinx.serialization.Serializable
+
+            @Serializable
+            internal data class SerializableValue(val name: String)
+
+            internal val valueSerializer = SerializableValue.serializer()
+            """.trimIndent() + "\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter preserves compilation warning policy`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\nminekotToolchain { build { allWarningsAsErrors.set(true) } }\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/DeprecatedValue.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText(
+            "@Deprecated(\"old\")\ninternal fun oldValue(): Unit = Unit\n\ninternal fun useOldValue(): Unit = oldValue()\n",
+        )
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradleAndFail(projectDirectory, "mineKotFormat")
+
+        assertTrue(result.output.contains("warnings found and -Werror specified"), result.output)
+    }
+
+    @Test
+    fun `staged formatter preserves generated Kotlin source dependencies`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            val generatedKotlin = layout.buildDirectory.dir("generated/minekot/main")
+            val generateKotlin by tasks.registering {
+                outputs.dir(generatedKotlin)
+                doLast {
+                    generatedKotlin.get().file("Generated.kt").asFile.apply {
+                        parentFile.mkdirs()
+                        writeText("internal fun generatedValue(): String = \"generated\"\n")
+                    }
+                }
+            }
+            kotlin { sourceSets.main { kotlin.srcDir(generateKotlin) } }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/GeneratedConsumer.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("internal fun consumeGenerated(): String = generatedValue()\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKotlin")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter reuses configuration cache`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Value.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("val value: String = \"value\"\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        runGradle(projectDirectory, "mineKotFormat", "--configuration-cache")
+        runGradle(projectDirectory, "mineKotFormat", "--configuration-cache")
+        val result = runGradle(projectDirectory, "mineKotFormat", "--configuration-cache")
+
+        assertTrue(result.output.contains("Reusing configuration cache"), result.output)
+    }
+
+    @Test
+    fun `published plugin classpath does not require KSP`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "default-disabled-lint.gradle.kts")
+
+        val result = runGradleWithoutKsp(projectDirectory, "tasks")
+
+        assertTrue(result.output.contains("mineKotAssistCompileStaged"))
+        assertFalse(result.output.contains("NoClassDefFoundError"))
+    }
+
+    @Test
+    fun `toolchain rejects Kotlin Multiplatform explicitly`() {
+        val projectDirectory = createProject()
+        projectDirectory.resolve("build.gradle.kts").toFile().writeText(
+            """
+            plugins {
+                kotlin("multiplatform") version "2.4.10"
+                id("org.minekot.toolchain") version "+"
+            }
+            """.trimIndent() + "\n",
+        )
+
+        val result = runGradleAndFail(projectDirectory, "tasks")
+
+        assertTrue(result.output.contains("Kotlin Multiplatform staged compilation is not yet supported"))
     }
 
     @Test
@@ -1000,6 +1558,25 @@ class MineKotToolchainPluginTest {
             .withPluginClasspath()
             .withArguments(*arguments, "--stacktrace", "--no-build-cache")
             .build()
+
+    private fun runGradleWithoutKsp(projectDirectory: Path, vararg arguments: String): BuildResult {
+        val metadataFile = listOf(
+            Path.of("build/pluginUnderTestMetadata/plugin-under-test-metadata.properties"),
+            Path.of("plugin/toolchain/build/pluginUnderTestMetadata/plugin-under-test-metadata.properties"),
+        ).first { candidate -> candidate.toFile().isFile }
+        val metadata = Properties().apply {
+            metadataFile.toFile().inputStream().use(::load)
+        }
+        val pluginClasspath = metadata.getProperty("implementation-classpath")
+            .split(File.pathSeparator)
+            .map(::File)
+            .filterNot { file -> "symbol-processing" in file.name || "ksp" in file.name.lowercase() }
+        return GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withPluginClasspath(pluginClasspath)
+            .withArguments(*arguments, "--stacktrace", "--no-build-cache")
+            .build()
+    }
 
     private fun runGradleAndFail(projectDirectory: Path, vararg arguments: String) =
         GradleRunner.create()

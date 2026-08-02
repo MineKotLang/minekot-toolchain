@@ -173,10 +173,7 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
     }
 
     private fun KtCallExpression.isFileProjectDependency(): Boolean {
-        if (!dependencyConfigurationPattern.matches(calleeExpression?.text.orEmpty())) {
-            return false
-        }
-        return valueArguments.any { argument ->
+        return dependencyConfigurationPattern.matches(calleeExpression?.text.orEmpty()) && valueArguments.any { argument ->
             (argument.getArgumentExpression() as? KtCallExpression)?.calleeExpression?.text == "files"
         }
     }

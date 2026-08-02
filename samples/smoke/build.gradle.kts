@@ -30,18 +30,18 @@ configurations.configureEach {
 
 minekotToolchain {
     build {
-        javaVersion.set(projectJavaVersion)
+        javaVersion = projectJavaVersion
     }
     adventure {
-        enabled.set(false)
+        enabled = false
     }
     lint {
-        enabled.set(true)
-        autoCorrect.set(false)
-        buildUponDefaultConfig.set(false)
+        enabled = true
+        autoCorrect = false
+        buildUponDefaultConfig = false
         configFile.set(layout.projectDirectory.file("config/detekt/minekot.yml"))
     }
     testing {
-        enabled.set(false)
+        enabled = false
     }
 }

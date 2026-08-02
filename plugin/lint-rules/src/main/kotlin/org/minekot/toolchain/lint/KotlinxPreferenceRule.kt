@@ -39,7 +39,7 @@ class KotlinxPreferenceRule(config: Config) : Rule(config, "MineKot codestyle ru
     override fun postVisit(root: KtFile) {
         if (correctedFilesCall && !uncorrectedFilesCall) {
             root.importDirectives
-                .filter { directive -> directive.importedFqName?.asString() == filesImport }
+                .filter { directive -> directive.importedFqName?.asString() == JAVA_NIO_FILES }
                 .forEach { directive ->
                     val endOffset = directive.textRange.endOffset +
                             root.text.substring(directive.textRange.endOffset)
@@ -131,7 +131,7 @@ class KotlinxPreferenceRule(config: Config) : Rule(config, "MineKot codestyle ru
     }
 
     private companion object {
-        private const val filesImport: String = "java.nio.file.Files"
+        private const val JAVA_NIO_FILES: String = "java.nio.file.Files"
 
         private val blockedImports: Map<String, String> = mapOf(
             "java.io.File" to "java.nio.file.Path with kotlin.io.path or kotlinx-io",

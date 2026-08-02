@@ -9,14 +9,14 @@ import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.KtFile
 
 /**
- * Enforces MineKot first-column comments and compact comment markers.
+ * Enforces MineKot comment indentation and marker spacing.
  */
 @AutoCorrectable(since = "2.0.0")
 class CommentFormattingRule(config: Config) : Rule(config, "MineKot codestyle rule.") {
     private val issue: Issue = Issue(
         id = "CommentFormatting",
         severity = Severity.Style,
-        description = "MineKot line and block comments start in the first column without marker padding.",
+        description = "Comments must be indented properly and have a space after the marker.",
         debt = Debt.FIVE_MINS,
     )
 
@@ -33,21 +33,22 @@ class CommentFormattingRule(config: Config) : Rule(config, "MineKot codestyle ru
 
     override fun visitComment(comment: PsiComment) {
         super.visitComment(comment)
-        if (comment.text.startsWith("/**") || comment.text.contains("@formatter:")) {
-            return
+        val text = comment.text
+        if (text.startsWith("/**") || text.contains("@formatter:")) return
+
+        val startOffset = comment.textRange.startOffset
+
+        val needsLeadingSpace = (text.startsWith("//") && !text.startsWith("// ")) ||
+                (text.startsWith("/*") && !text.startsWith("/* "))
+
+        if (needsLeadingSpace) {
+            reportFinding(comment, "Add a space after the comment marker.")
+            edits.replace(startOffset + 2, startOffset + 2, " ")
         }
-        val source = comment.containingFile.text
-        val lineStart = source.lastIndexOf('\n', comment.textRange.startOffset - 1) + 1
-        val prefix = source.substring(lineStart, comment.textRange.startOffset)
-        if (prefix.isNotEmpty()) {
-            reportFinding(comment, "Place this comment in the first column.")
-            if (prefix.isBlank()) {
-                edits.replace(lineStart, comment.textRange.startOffset, "")
-            }
-        }
-        if (comment.text.startsWith("// ") || comment.text.startsWith("/* ")) {
-            reportFinding(comment, "Do not add a space after the comment marker.")
-            edits.replace(comment.textRange.startOffset + 2, comment.textRange.startOffset + 3, "")
+
+        if (text.startsWith("/*") && text.endsWith("*/") && !text.endsWith(" */")) {
+            reportFinding(comment, "Add a space before the closing block comment marker.")
+            edits.replace(comment.textRange.endOffset - 2, comment.textRange.endOffset - 2, " ")
         }
     }
 

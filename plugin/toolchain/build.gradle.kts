@@ -1,5 +1,4 @@
 import org.gradle.jvm.tasks.Jar
-import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -8,10 +7,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val kspPluginUnderTest = configurations.create("kspPluginUnderTest") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     implementation(project(":plugin:minekot-toolchain-lint-rules"))
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kotlin.serialization.gradle.plugin)
+    compileOnly(libs.ksp.gradle.plugin)
     implementation(libs.detekt.gradle.plugin)
     implementation(libs.shadow.gradle.plugin)
     implementation(libs.kotlinx.serialization.json)
@@ -23,6 +28,7 @@ dependencies {
     implementation(libs.commonmark.tables)
     testImplementation(gradleTestKit())
     testImplementation(libs.junit.jupiter)
+    kspPluginUnderTest(libs.ksp.gradle.plugin)
 }
 
 gradlePlugin {
@@ -43,7 +49,7 @@ val pluginJar = tasks.named<Jar>("jar") {
 }
 
 tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
-    pluginClasspath.setFrom(pluginJar, configurations.runtimeClasspath)
+    pluginClasspath.setFrom(pluginJar, configurations.runtimeClasspath, kspPluginUnderTest)
 }
 
 publishing {
