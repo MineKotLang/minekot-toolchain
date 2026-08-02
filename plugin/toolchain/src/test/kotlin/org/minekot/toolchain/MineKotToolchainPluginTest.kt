@@ -342,7 +342,8 @@ class MineKotToolchainPluginTest {
         assertTrue(Files.exists(projectDirectory.resolve(".idea/workspace.xml")))
 
         val detektConfig = projectDirectory.resolve("config/detekt/minekot.yml").toFile().readText()
-        val configuredMineKotRules = Regex("^    ([A-Z][A-Za-z]+):$", RegexOption.MULTILINE)
+        // MineKot YAML style uses two spaces for each mapping level.
+        val configuredMineKotRules = Regex("^  ([A-Z][A-Za-z]+):$", RegexOption.MULTILINE)
             .findAll(detektConfig.substringBefore("\nstyle:"))
             .map { match -> match.groupValues[1] }
             .toSet()
@@ -369,9 +370,9 @@ class MineKotToolchainPluginTest {
 
         assertEquals(configuredRuleNames, configuredMineKotRules)
         activeMineKotRules.forEach { ruleName ->
-            assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true"))
+            assertTrue(detektConfig.contains("  ${ruleName}:\n    active: true"))
         }
-        assertTrue(detektConfig.contains("    KotlinxPreference:\n        active: false"))
+        assertTrue(detektConfig.contains("  KotlinxPreference:\n    active: false"))
         val autoCorrectableMineKotRules = setOf(
             "StringTemplateBraces",
             "TrailingComma",
@@ -381,7 +382,7 @@ class MineKotToolchainPluginTest {
             "LineWrapping",
         )
         autoCorrectableMineKotRules.forEach { ruleName ->
-            assertTrue(detektConfig.contains("    ${ruleName}:\n        active: true\n        autoCorrect: true"))
+            assertTrue(detektConfig.contains("  ${ruleName}:\n    active: true\n    autoCorrect: true"))
         }
         setOf(
             "ResultHandling",
@@ -390,16 +391,20 @@ class MineKotToolchainPluginTest {
             "ImportPolicy",
             "ExplicitScopeInNestedScope",
         ).forEach { ruleName ->
-            val ruleConfig = detektConfig.substringAfter("    ${ruleName}:").substringBefore("\n    ")
+            val ruleConfig = detektConfig.lineSequence()
+                .dropWhile { line -> line != "  ${ruleName}:" }
+                .drop(1)
+                .takeWhile { line -> line.startsWith("    ") }
+                .joinToString("\n")
             assertFalse(ruleConfig.contains("autoCorrect: true"))
         }
         assertTrue(detektConfig.contains("maxLineLength: 120"))
-        assertTrue(detektConfig.contains("    NewLineAtEndOfFile:\n        active: true"))
-        assertTrue(detektConfig.contains("    NoTabs:\n        active: true"))
-        assertTrue(detektConfig.contains("    SpacingAfterPackageAndImports:\n        active: true"))
-        assertTrue(detektConfig.contains("    MagicNumber:\n        active: false"))
-        assertTrue(detektConfig.contains("    WildcardImport:\n        active: false"))
-        assertTrue(detektConfig.contains("    SleepInsteadOfDelay:\n        active: false"))
+        assertTrue(detektConfig.contains("  NewLineAtEndOfFile:\n    active: true"))
+        assertTrue(detektConfig.contains("  NoTabs:\n    active: true"))
+        assertTrue(detektConfig.contains("  SpacingAfterPackageAndImports:\n    active: true"))
+        assertTrue(detektConfig.contains("  MagicNumber:\n    active: false"))
+        assertTrue(detektConfig.contains("  WildcardImport:\n    active: false"))
+        assertTrue(detektConfig.contains("  SleepInsteadOfDelay:\n    active: false"))
 
         val workspace = projectDirectory.resolve(".idea/workspace.xml").toFile().readText()
 

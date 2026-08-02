@@ -19,6 +19,7 @@
 - Require formatter corrections to converge after one pass and remain byte-identical on the second pass.
 - Reject unsafe generated-source provenance, generated KSP Java, concurrent formatter edits, and stale assisted source snapshots before publication.
 - Keep staged compiler registration lazy and replace original associated-compilation outputs without scheduling original compile or KSP tasks.
+- Align bundled codestyle verification with MineKot's two-space YAML indentation standard.
 - Run compilation-aware Detekt tasks from `check` so Analysis API rules receive source-set classpaths.
 
 ### Deprecations
