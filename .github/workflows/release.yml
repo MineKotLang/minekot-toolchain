@@ -44,7 +44,8 @@ jobs:
           git fetch --no-tags origin master
           version=${GITHUB_REF_NAME#v}
           test "$GITHUB_SHA" = "$(git rev-parse origin/master)"
-          test "$version" = "$(sed -n 's/^version=//p' gradle.properties)"
+          # Accept Gradle's canonical spaced property separator.
+          test "$version" = "$(sed -n 's/^version[[:space:]]*=[[:space:]]*//p' gradle.properties)"
 
       - name: Bootstrap current toolchain artifacts
         run: >-
