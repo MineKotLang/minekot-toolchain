@@ -35,6 +35,19 @@ class MineKotKspTest {
         assertEquals("minekot", annotated.mineKotRequiredArgument(argument))
     }
 
+    @Test
+    fun `annotated declaration helpers collapse duplicate source and library symbols`() {
+        val source = declaration<KSClassDeclaration>("org.minekot.Example")
+        val library = declaration<KSClassDeclaration>("org.minekot.Example")
+        val other = declaration<KSClassDeclaration>("org.minekot.Other")
+
+        val unique = sequenceOf(source, library, other).distinctMineKotDeclarations().toList()
+
+        assertEquals(2, unique.size)
+        assertTrue(unique[0] === source)
+        assertTrue(unique[1] === other)
+    }
+
     private fun annotation(vararg arguments: Pair<String, Any?>): KSAnnotation =
         proxy { method ->
             when (method.name) {
@@ -77,9 +90,12 @@ class MineKotKspTest {
         }
 
     private fun declaration(type: ClassName): KSDeclaration =
+        declaration(type.canonicalName)
+
+    private inline fun <reified DeclarationType : KSDeclaration> declaration(qualifiedName: String): DeclarationType =
         proxy { method ->
             when (method.name) {
-                "getQualifiedName" -> name(type.canonicalName)
+                "getQualifiedName" -> name(qualifiedName)
                 else -> defaultValue(method)
             }
         }

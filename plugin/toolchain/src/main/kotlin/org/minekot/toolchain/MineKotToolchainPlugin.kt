@@ -483,6 +483,15 @@ class MineKotToolchainPlugin : Plugin<Project> {
         project.tasks.withType(Detekt::class.java).configureEach {
             it.jvmTarget.set(javaVersion.toString())
         }
+        val buildRoot = project.layout.buildDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+        project.tasks.withType(Detekt::class.java)
+            .matching { task -> task.name in fullAnalysisTaskNames }
+            .configureEach { task ->
+                // Generated sources must compile, but their producer-owned layout is not handwritten codestyle input.
+                task.exclude { details ->
+                    details.file.toPath().toAbsolutePath().normalize().startsWith(buildRoot)
+                }
+            }
         project.tasks.named("detekt", Detekt::class.java) {
             it.source(project.buildFile)
         }
@@ -670,7 +679,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
                 compilationName = compilationName,
                 outputDirectoryName = outputDirectoryName,
                 originalCompile = originalCompile,
-                kspTaskPath = stagedKsp?.let { project.tasks.named(kspTaskName).get().path },
+                kspTaskPath = project.tasks.findByName(kspTaskName)?.path,
             )
             val projectRoot = project.layout.projectDirectory.asFile.toPath().toAbsolutePath().normalize()
             val buildRoot = project.layout.buildDirectory.get().asFile.toPath().toAbsolutePath().normalize()
@@ -718,7 +727,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
                                     generatorPlan.originalOutputRoots + associatedStagedOutputs.keys)
                                 .map { path -> java.io.File(path).toPath().toAbsolutePath().normalize() }
                             val path = dependency.toPath().toAbsolutePath().normalize()
-                            replacedRoots.none(path::startsWith)
+                            !path.startsWith(buildRoot) && replacedRoots.none(path::startsWith)
                         }
                     },
                 )

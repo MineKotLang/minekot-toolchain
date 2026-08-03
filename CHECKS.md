@@ -19,13 +19,13 @@ This document records current deterministic enforcement against the MineKot [Kot
 | Import policy                  | Automated     | `ImportPolicy` checks grouping, wildcards, and nested imports.                                                                                                                            |
 | 120 columns and wrapping       | Partial       | `MaxLineLength` and `LineWrapping` cover selected PSI shapes without rewriting strings.                                                                                                   |
 | Formatter controls             | Automated     | Balanced controls are checked and automatic edits avoid excluded regions.                                                                                                                 |
-| Indentation and spacing        | Partial       | Selected ktlint rules are enabled; complete guide coverage is not proven.                                                                                                                 |
+| Indentation and spacing        | Partial       | Selected ktlint rules are enabled; standalone comments align with neighboring code. Generated build output is excluded from handwritten-source style findings. Complete guide coverage is not proven. |
 | Trailing commas                | Automated     | Kotlin list, type, destructuring, index, context, lambda, and `when` contexts are covered.                                                                                                |
 | Parameter wrapping             | Not enforced  | Dedicated enforcement was removed to avoid bloated declarations and calls.                                                                                                                |
 | String-template braces         | Automated     | `StringTemplateBraces` reports and corrects simple unbraced templates.                                                                                                                    |
 | Kotlin and kotlinx APIs        | Partial       | Full-analysis `ResolvedApiPreference` checks selected exact JDK calls and exempts configured helper/adapter package boundaries. Heuristic `KotlinxPreference` is deprecated and inactive. |
 | Error handling                 | Partial       | Unsafe broad, swallowed, and cancellation-breaking catches plus selected discarded or unsafe `Result` uses are reported without automatic failure swallowing.                             |
-| Explicit nested scope          | Partial       | Full analysis resolves outer class and object instance members through nested lambdas without treating companion members, explicit safe calls, or lambda-receiver DSL members as outer-instance access. Some inline-contract and unlabeled-receiver shapes remain unsupported. |
+| Explicit nested scope          | Not enforced  | `ExplicitScopeInNestedScope` remains available for opt-in strict analysis, but default enforcement is disabled. Receiver intent and acceptable qualification cannot be proven without producing readability-negative findings across ordinary lambdas, objects, DSLs, and coroutine code. |
 | Coroutine preference           | Partial       | Full analysis resolves selected JDK concurrency and Bukkit scheduler callable IDs with helper/adapter package exemptions.                                                                 |
 | Iteration form                 | Partial       | Existing loop-shape findings are report-only. Automatic conversion is disabled pending semantic proof.                                                                                    |
 | Data-driven and modular design | Not automated | Architectural intent cannot be derived safely from syntax alone.                                                                                                                          |
@@ -74,14 +74,15 @@ Markdown is parsed with CommonMark `0.28.0` and GFM table support.
 
 ## Implemented interfaces
 
-- `check` depends only on deterministic verification; no human approval receipt or semantic-review file is required. It runs plain build-script Detekt plus compilation-aware `detektMain` and `detektTest` tasks.
-- `mineKotFormat` stages sources, applies one correction pass, snapshots source hashes, applies a second pass, and requires byte-identical output. It then verifies raw staged files, compiles every configured Kotlin/JVM compilation with serialized original compiler arguments and staged associated outputs, and publishes through rollback-capable per-file replacement.
+- `check` depends only on deterministic verification; no human approval receipt or semantic-review file is required. It runs plain build-script Detekt plus compilation-aware `detektMain` and `detektTest` tasks. Full-analysis tasks exclude producer-owned generated sources under each project build directory while compilation still validates those outputs.
+- `mineKotFormat` stages sources, applies one correction pass, snapshots source hashes, applies a second pass, and requires byte-identical output. It then verifies raw staged files, compiles every configured Kotlin/JVM compilation with serialized original compiler arguments and staged associated outputs, omits absent optional paths and original-module build outputs from staged classpaths, ignores processor-free KSP tasks, and publishes through rollback-capable per-file replacement.
 - `mineKotAssistPreview` writes JSON and a focused unified diff without modifying sources.
 - `mineKotAssistApply` requires the exact confirmed plan, stages Kotlin sources, runs the same per-compilation Kotlin/JVM validation, rechecks every staged Kotlin source hash plus requested replacements, and publishes through the rollback-capable publisher.
 - Assisted schema version 1 uses sealed typed option models while retaining the JSON `options` object.
 - `verifyMineKotCodestyle` rejects case-insensitive `*baseline*.xml` files outside ignored or generated paths.
 - Every `DetektCreateBaselineTask` remains disabled; no baseline is generated or wired.
 - Rule descriptors record lifecycle disposition, default reporting, correction safety, and replacement IDs. Unsafe heuristic corrections remain disabled until semantic proof exists.
+- Shared KSP annotated-declaration helpers collapse duplicate source and library views by qualified name so isolated staged processing cannot emit duplicate declarations.
 
 Publication is transactional in the all-or-rollback sense. It is not globally atomic across multiple files.
 

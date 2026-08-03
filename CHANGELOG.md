@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.3 - 2026-08-03
+
+### Fixes
+
+- Exclude generated build sources from handwritten codestyle analysis while retaining compilation validation.
+- Disable noisy outer-instance qualification findings by default; retain stricter semantic analysis as opt-in.
+- Align standalone comments with neighboring code during deterministic formatting.
+- Omit absent optional directories and original-module build outputs from staged classpaths so warnings-as-errors and Gradle producer validation do not block formatting; ignore processor-free KSP tasks that cannot generate staged output.
+- Deduplicate KSP source and library views before processors generate declarations during isolated staged validation.
+
 ## 1.3.2 - 2026-08-03
 
 ### Fixes

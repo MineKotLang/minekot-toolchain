@@ -114,7 +114,7 @@ abstract class MineKotStagedKotlinCompileTask : DefaultTask() {
     @get:Classpath
     abstract val compilerClasspath: ConfigurableFileCollection
 
-    /** Original compilation dependency classpath and producer wiring. */
+    /** Original compilation dependency classpath and producer wiring; absent optional outputs are omitted at execution. */
     @get:Classpath
     abstract val compilationClasspath: ConfigurableFileCollection
 
@@ -208,6 +208,7 @@ abstract class MineKotStagedKotlinCompileTask : DefaultTask() {
                     value.replace(original, staged)
                 }
             }
+            .filter { dependency -> File(dependency).exists() }
             .distinct()
             .joinToString(File.pathSeparator)
         val classpathIndex = arguments.indexOf("-classpath")

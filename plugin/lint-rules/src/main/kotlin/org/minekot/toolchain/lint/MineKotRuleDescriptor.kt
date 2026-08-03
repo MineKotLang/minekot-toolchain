@@ -203,11 +203,10 @@ val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
     ),
     MineKotRuleDescriptor(
         id = "ExplicitScopeInNestedScope",
-        defaultActive = true,
+        defaultActive = false,
         severity = "Style",
-        falsePositiveRisk = "medium",
+        falsePositiveRisk = "high",
         codestyleSection = "6.2 Explicit scope resolution",
-        disposition = MineKotRuleDisposition.REWRITE,
         correctionMode = MineKotCorrectionMode.DISABLED,
         requiresAnalysisApi = true,
         factory = ::ExplicitScopeInNestedScopeRule,

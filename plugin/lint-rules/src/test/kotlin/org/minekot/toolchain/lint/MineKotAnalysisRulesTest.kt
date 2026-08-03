@@ -232,6 +232,51 @@ class MineKotAnalysisRulesTest {
     }
 
     @Test
+    fun `explicit scope accepts outer members throughout receiver lambda bodies`() {
+        val source =
+            """
+            class Scope
+
+            fun withScope(block: Scope.() -> Unit): Unit = Scope().block()
+
+            class Engine {
+                val config: String = "MineKot"
+                fun monitor(): Unit = Unit
+
+                fun start(): Unit = withScope {
+                    println(config)
+                    monitor()
+                }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
+    fun `explicit scope accepts top-level extensions and inherited members in plain lambdas`() {
+        val source =
+            """
+            fun <T> T.observe(): Unit = Unit
+
+            open class TestSupport {
+                fun assertReady(): Unit = Unit
+            }
+
+            class Engine : TestSupport() {
+                fun start(): Unit {
+                    listOf(1).forEach {
+                        observe()
+                        assertReady()
+                    }
+                }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
     fun `explicit scope accepts extension receivers inside nested lambdas`() {
         val source =
             """

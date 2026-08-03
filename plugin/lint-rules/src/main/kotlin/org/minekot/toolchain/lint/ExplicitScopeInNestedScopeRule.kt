@@ -9,10 +9,11 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
- * Reports resolved implicit outer class or object member access inside nested scopes.
+ * Reports resolved implicit outer class or object members inside plain nested lambdas.
  *
- * Explicit receivers, companion members, and lambda-receiver DSL members remain valid because none relies on an
- * implicit outer instance.
+ * Receiver lambdas are excluded as one scope because DSL and coroutine builders intentionally expose multiple
+ * receivers. Explicit receivers, companion members, inherited members, and top-level extensions remain valid because
+ * they do not resolve to a member declared directly on the implicit outer instance.
  */
 class ExplicitScopeInNestedScopeRule(config: Config) :
     Rule(config, "MineKot codestyle rule."),
@@ -53,6 +54,8 @@ class ExplicitScopeInNestedScopeRule(config: Config) :
             if (receiverSymbol.classKind == KaClassKind.COMPANION_OBJECT) return@analyze false
             val nearestLambda = expression.parents.filterIsInstance<KtLambdaExpression>().firstOrNull()
                 ?: return@analyze false
+            if (nearestLambda.functionLiteral.symbol.receiverParameter != null) return@analyze false
+            if (call.symbol.callableId?.classId != receiverSymbol.classId) return@analyze false
             val receiverPsi = receiverSymbol.psi
             receiverPsi == null || !PsiTreeUtil.isAncestor(nearestLambda, receiverPsi, false)
         }

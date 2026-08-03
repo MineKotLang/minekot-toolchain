@@ -40,7 +40,7 @@ minekot:
     active: true
     autoCorrect: true
   ExplicitScopeInNestedScope:
-    active: true
+    active: false
 
 style:
   MagicNumber:

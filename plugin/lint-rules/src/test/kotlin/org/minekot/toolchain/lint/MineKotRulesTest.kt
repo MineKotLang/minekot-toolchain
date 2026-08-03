@@ -1260,6 +1260,20 @@ class MineKotRulesTest {
             expectedFindings = 0,
             source = "/** Documentation. */\nfun run() = Unit\n",
         ),
+        RuleCase(
+            name = "flags standalone comments misaligned with surrounding code",
+            expectedFindings = 2,
+            source =
+                """
+                fun run() {
+                 // explanation
+                    if (true) {
+                /* detail */
+                        println("MineKot")
+                    }
+                }
+                """,
+        ),
     )
 
     @TestFactory
@@ -1442,12 +1456,19 @@ class MineKotRulesTest {
 
     @Test
     fun `comment formatting auto correction is complete and idempotent`() {
-        val source = "//explanation\n/*block*/\nfun run(): Unit = Unit"
+        val source =
+            """
+            fun run(): Unit {
+             //explanation
+            /*block*/
+                println("MineKot")
+            }
+            """.trimIndent()
         val firstPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
         val secondPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
 
-        assertEquals(3, firstPass.findings.size)
-        assertTrue(firstPass.correctedSource.startsWith("// explanation\n/* block */\n"))
+        assertEquals(5, firstPass.findings.size)
+        assertTrue(firstPass.correctedSource.contains("    // explanation\n    /* block */\n"))
         assertEquals(0, secondPass.findings.size)
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)
     }

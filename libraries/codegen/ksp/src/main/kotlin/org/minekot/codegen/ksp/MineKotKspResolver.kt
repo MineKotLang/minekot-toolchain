@@ -3,6 +3,7 @@ package org.minekot.codegen.ksp
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.validate
@@ -45,7 +46,7 @@ inline fun <reified AnnotationType : Annotation> Resolver.mineKotAnnotatedSymbol
     mineKotAnnotatedSymbols(AnnotationType::class)
 
 /**
- * Returns valid class declarations with an annotation.
+ * Returns valid, qualified-name-unique class declarations with an annotation.
  *
  * @param annotationName Fully qualified annotation name.
  * @return Valid annotated class declarations.
@@ -54,6 +55,7 @@ fun Resolver.mineKotAnnotatedClasses(annotationName: String): Sequence<KSClassDe
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSClassDeclaration>()
         .filter(KSAnnotated::validate)
+        .distinctMineKotDeclarations()
 
 /**
  * Returns valid class declarations with an annotation.
@@ -93,6 +95,7 @@ fun Resolver.mineKotAnnotatedFunctions(annotationName: String): Sequence<KSFunct
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSFunctionDeclaration>()
         .filter(KSAnnotated::validate)
+        .distinctMineKotDeclarations()
 
 /**
  * Returns valid function declarations with an annotation.
@@ -132,6 +135,13 @@ fun Resolver.mineKotAnnotatedProperties(annotationName: String): Sequence<KSProp
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSPropertyDeclaration>()
         .filter(KSAnnotated::validate)
+        .distinctMineKotDeclarations()
+
+/** Removes duplicate source and library views of one declaration while retaining local declarations independently. */
+internal fun <DeclarationType : KSDeclaration> Sequence<DeclarationType>.distinctMineKotDeclarations():
+    Sequence<DeclarationType> = distinctBy { declaration ->
+        declaration.qualifiedName?.asString() ?: declaration
+    }
 
 /**
  * Returns valid property declarations with an annotation.

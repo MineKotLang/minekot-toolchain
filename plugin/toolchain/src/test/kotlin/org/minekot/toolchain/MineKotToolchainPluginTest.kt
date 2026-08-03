@@ -215,6 +215,28 @@ class MineKotToolchainPluginTest {
     }
 
     @Test
+    fun `full analysis excludes generated build sources from codestyle findings`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            "\nkotlin { sourceSets.test { kotlin.srcDir(layout.buildDirectory.dir(\"generated/ksp/test/kotlin\")) } }\n",
+        )
+        val generatedSource = projectDirectory.resolve("build/generated/ksp/test/kotlin/Generated.kt")
+        Files.createDirectories(generatedSource.parent)
+        generatedSource.toFile().writeText(
+            "internal fun generated(): Unit {\n  println(\"generated\")\n}\n",
+        )
+        val handwrittenSource = projectDirectory.resolve("src/test/kotlin/Handwritten.kt")
+        Files.createDirectories(handwrittenSource.parent)
+        handwrittenSource.toFile().writeText("internal fun handwritten(): Unit = Unit\n")
+
+        val result = runGradle(projectDirectory, "detektTest")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":detektTest")?.outcome)
+        assertFalse(result.output.contains("Unexpected indentation"), result.output)
+    }
+
+    @Test
     fun `plugin configures project repositories`() {
         val projectDirectory = createProject(repositoriesMode = "PREFER_PROJECT")
         writeBuildFixture(projectDirectory, "repositories.gradle.kts")
@@ -366,13 +388,16 @@ class MineKotToolchainPluginTest {
             "ExplicitScopeInNestedScope",
             "ResolvedApiPreference",
         )
-        val activeMineKotRules = configuredRuleNames - "KotlinxPreference"
+        val inactiveMineKotRules = setOf("ExplicitScopeInNestedScope", "KotlinxPreference")
+        val activeMineKotRules = configuredRuleNames - inactiveMineKotRules
 
         assertEquals(configuredRuleNames, configuredMineKotRules)
         activeMineKotRules.forEach { ruleName ->
             assertTrue(detektConfig.contains("  ${ruleName}:\n    active: true"))
         }
-        assertTrue(detektConfig.contains("  KotlinxPreference:\n    active: false"))
+        inactiveMineKotRules.forEach { ruleName ->
+            assertTrue(detektConfig.contains("  ${ruleName}:\n    active: false"))
+        }
         val autoCorrectableMineKotRules = setOf(
             "StringTemplateBraces",
             "TrailingComma",
@@ -969,6 +994,30 @@ class MineKotToolchainPluginTest {
     }
 
     @Test
+    fun `staged formatter omits absent optional classpath outputs under warnings as errors`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        projectDirectory.resolve("build.gradle.kts").toFile().appendText(
+            """
+
+            dependencies {
+                add("implementation", files(layout.buildDirectory.dir("missing-optional-classes")))
+            }
+            minekotToolchain { build { allWarningsAsErrors.set(true) } }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("internal fun example(): Unit = Unit\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertFalse(result.output.contains("classpath entry points to a non-existent location"), result.output)
+    }
+
+    @Test
     fun `staged formatter models custom JVM compilations`() {
         val projectDirectory = createProject()
         writeBuildFixture(projectDirectory, "format.gradle.kts")
@@ -1280,6 +1329,30 @@ class MineKotToolchainPluginTest {
         assertEquals(TaskOutcome.SUCCESS, assisted.task(":mineKotAssistCompileStagedTest")?.outcome)
         assertNull(assisted.task(":kspKotlin"))
         assertNull(assisted.task(":kspTestKotlin"))
+    }
+
+    @Test
+    fun `staged formatter ignores KSP compilations without processors`() {
+        val projectDirectory = createProject()
+        projectDirectory.resolve("build.gradle.kts").toFile().writeText(
+            """
+            plugins {
+                id("org.minekot.toolchain") version "+"
+                id("com.google.devtools.ksp")
+            }
+            """.trimIndent() + "\n",
+        )
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Source.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("internal fun answer(): Int = 42\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormat")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedMain")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":mineKotFormatCompileStagedTest")?.outcome)
+        assertNull(result.task(":kspKotlin"))
+        assertNull(result.task(":kspTestKotlin"))
     }
 
     @Test
