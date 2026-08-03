@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2 - 2026-08-03
+
+### Fixes
+
+- Exclude companion-object constants and functions from outer-instance receiver findings inside nested lambdas.
+
 ## 1.3.1 - 2026-08-03
 
 ### Fixes

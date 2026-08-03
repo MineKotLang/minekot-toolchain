@@ -4,14 +4,15 @@ import com.intellij.psi.util.PsiTreeUtil
 import dev.detekt.api.*
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.*
-import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
  * Reports resolved implicit outer class or object member access inside nested scopes.
  *
- * Explicit receivers and lambda-receiver DSL members remain valid because neither relies on an implicit outer class.
+ * Explicit receivers, companion members, and lambda-receiver DSL members remain valid because none relies on an
+ * implicit outer instance.
  */
 class ExplicitScopeInNestedScopeRule(config: Config) :
     Rule(config, "MineKot codestyle rule."),
@@ -49,6 +50,7 @@ class ExplicitScopeInNestedScopeRule(config: Config) :
             val receiver = (call.dispatchReceiver ?: call.extensionReceiver).unwrapSmartCast() ?: return@analyze false
             val receiverSymbol = (receiver as? KaImplicitReceiverValue)?.symbol as? KaClassSymbol
                 ?: return@analyze false
+            if (receiverSymbol.classKind == KaClassKind.COMPANION_OBJECT) return@analyze false
             val nearestLambda = expression.parents.filterIsInstance<KtLambdaExpression>().firstOrNull()
                 ?: return@analyze false
             val receiverPsi = receiverSymbol.psi

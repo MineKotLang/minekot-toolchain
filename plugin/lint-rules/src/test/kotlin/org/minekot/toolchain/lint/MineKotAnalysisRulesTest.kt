@@ -143,6 +143,33 @@ class MineKotAnalysisRulesTest {
     }
 
     @Test
+    fun `explicit scope accepts companion members inside lazy message lambdas`() {
+        val source =
+            """
+            data class NetworkPayload(
+                val channel: String,
+                val bytes: ByteArray,
+            ) {
+                init {
+                    require(channel.isNotBlank()) {
+                        "Invalid channel: ${'$'}{this@NetworkPayload.channel}"
+                    }
+                    require(bytes.size <= MAX_BYTES) {
+                        "Payload exceeds ${'$'}{MAX_BYTES} bytes (${'$'}{maximumBytes()})"
+                    }
+                }
+
+                companion object {
+                    const val MAX_BYTES: Int = 1_048_576
+                    fun maximumBytes(): Int = MAX_BYTES
+                }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
     fun `explicit scope accepts safe-qualified scope functions`() {
         val source =
             """
