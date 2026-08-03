@@ -126,6 +126,100 @@ class MineKotAnalysisRulesTest {
         assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(clean).size)
     }
 
+    @Test
+    fun `explicit scope resolves outer object members`() {
+        val source =
+            """
+            object Engine {
+                val name: String = "MineKot"
+
+                fun run(): Unit {
+                    listOf(1).forEach { println(name) }
+                }
+            }
+            """.trimIndent()
+
+        assertEquals(1, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
+    fun `explicit scope accepts safe-qualified scope functions`() {
+        val source =
+            """
+            fun render(target: String): Unit {
+                target.takeIf(String::isNotBlank)?.let { value -> println(value) }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
+    fun `explicit scope accepts standard builder receivers inside nested lambdas`() {
+        val source =
+            """
+            fun render(values: List<String>): List<String> = buildList {
+                add("header")
+                values.forEach { value -> add(value) }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
+    fun `explicit scope accepts custom DSL receivers inside nested lambdas`() {
+        val source =
+            """
+            class JsonObject
+
+            class JsonObjectBuilder {
+                fun put(key: String, value: String): Unit = Unit
+            }
+
+            class JsonArrayBuilder {
+                fun add(value: JsonObject): Unit = Unit
+            }
+
+            fun buildJsonObject(block: JsonObjectBuilder.() -> Unit): JsonObject {
+                JsonObjectBuilder().block()
+                return JsonObject()
+            }
+
+            fun buildJsonArray(block: JsonArrayBuilder.() -> Unit): Unit = JsonArrayBuilder().block()
+
+            fun render(entries: List<String>): Unit {
+                buildJsonArray {
+                    entries.forEach { entry ->
+                        add(
+                            buildJsonObject {
+                                put("permission", entry)
+                            },
+                        )
+                    }
+                }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
+    @Test
+    fun `explicit scope accepts extension receivers inside nested lambdas`() {
+        val source =
+            """
+            class Builder {
+                fun add(value: String): Unit = Unit
+            }
+
+            fun Builder.render(values: List<String>): Unit {
+                values.forEach { value -> add(value) }
+            }
+            """.trimIndent()
+
+        assertEquals(0, ExplicitScopeInNestedScopeRule(Config.empty).lintWithAnalysis(source).size)
+    }
+
     private fun classpathRoots(vararg classes: Class<*>): List<Path> =
         classes.map { type -> Path.of(type.protectionDomain.codeSource.location.toURI()) }.distinct()
 }

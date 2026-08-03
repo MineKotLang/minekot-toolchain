@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 - 2026-08-03
+
+### Fixes
+
+- Restrict explicit nested-scope findings to implicit outer class and object members, excluding safe-qualified calls and DSL lambda receivers.
+
 ## 1.3.0 - 2026-07-30
 
 ### Breaking changes

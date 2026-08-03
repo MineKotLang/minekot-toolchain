@@ -4,11 +4,14 @@ import com.intellij.psi.util.PsiTreeUtil
 import dev.detekt.api.*
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.*
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
- * Reports resolved implicit outer-receiver access inside nested scopes.
+ * Reports resolved implicit outer class or object member access inside nested scopes.
+ *
+ * Explicit receivers and lambda-receiver DSL members remain valid because neither relies on an implicit outer class.
  */
 class ExplicitScopeInNestedScopeRule(config: Config) :
     Rule(config, "MineKot codestyle rule."),
@@ -36,7 +39,7 @@ class ExplicitScopeInNestedScopeRule(config: Config) :
         ) {
             return
         }
-        val isOuterReceiverAccess = analyze(expression) {
+        val isOuterClassReceiverAccess = analyze(expression) {
             val call = (expression.parent as? KtCallExpression)
                 ?.takeIf { callExpression -> callExpression.calleeExpression == expression }
                 ?.resolveToCall()
@@ -44,12 +47,14 @@ class ExplicitScopeInNestedScopeRule(config: Config) :
                 ?: expression.resolveToCall()?.singleVariableAccessCall()
                 ?: return@analyze false
             val receiver = (call.dispatchReceiver ?: call.extensionReceiver).unwrapSmartCast() ?: return@analyze false
+            val receiverSymbol = (receiver as? KaImplicitReceiverValue)?.symbol as? KaClassSymbol
+                ?: return@analyze false
             val nearestLambda = expression.parents.filterIsInstance<KtLambdaExpression>().firstOrNull()
                 ?: return@analyze false
-            val receiverPsi = (receiver as? KaImplicitReceiverValue)?.symbol?.psi ?: call.symbol.psi
+            val receiverPsi = receiverSymbol.psi
             receiverPsi == null || !PsiTreeUtil.isAncestor(nearestLambda, receiverPsi, false)
         }
-        if (!isOuterReceiverAccess) {
+        if (!isOuterClassReceiverAccess) {
             return
         }
         report(
@@ -69,7 +74,7 @@ class ExplicitScopeInNestedScopeRule(config: Config) :
 
     private fun KtNameReferenceExpression.isUnqualified(): Boolean {
         val selector = (parent as? KtCallExpression) ?: this
-        val qualifiedExpression = selector.parent as? KtDotQualifiedExpression ?: return true
+        val qualifiedExpression = selector.parent as? KtQualifiedExpression ?: return true
         return qualifiedExpression.selectorExpression != selector
     }
 }
