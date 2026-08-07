@@ -45,7 +45,7 @@ jobs:
           distribution: temurin
           java-version: "25"
 
-      - uses: gradle/actions/setup-gradle@v6.2.0
+      - uses: gradle/actions/setup-gradle@v6.3.0
         if: matrix.language == 'java-kotlin'
 
       # CodeQL 2.26.1 rejects Kotlin 2.4.10. Remove after its next bundle supports 2.4.10.
