@@ -1,7 +1,10 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.language
 
 import dev.detekt.api.*
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.minekot.toolchain.lint.core.*
+import org.minekot.toolchain.lint.core.Issue
+import org.minekot.toolchain.lint.core.Severity
 
 /**
  * Reports resolved direct concurrency and platform scheduler APIs outside approved boundaries.

@@ -48,6 +48,7 @@ style:
   MaxLineLength:
     active: true
     maxLineLength: 120
+    excludeCommentStatements: true
   NewLineAtEndOfFile:
     active: true
   NoTabs:
@@ -65,12 +66,12 @@ ktlint:
   active: true
   autoCorrect: true
   Indentation:
-    active: true
+    active: false
     indentSize: 4
   NoBlankLineBeforeRbrace:
     active: true
   NoConsecutiveBlankLines:
-    active: true
+    active: false
   NoEmptyFirstLineInClassBody:
     active: true
     indentSize: 4

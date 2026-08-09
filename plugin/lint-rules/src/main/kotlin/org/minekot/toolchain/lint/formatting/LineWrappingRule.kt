@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.formatting
 
 import com.intellij.psi.PsiComment
 import dev.detekt.api.Config
@@ -8,6 +8,7 @@ import dev.detekt.api.RuleName
 import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
+import org.minekot.toolchain.lint.core.*
 
 /** Wraps long calls and conditions without changing string contents. */
 @AutoCorrectable(since = "2.0.0")
@@ -17,7 +18,7 @@ class LineWrappingRule(config: Config) : Rule(config, "MineKot codestyle rule.")
         id = "LineWrapping",
         severity = Severity.Style,
         description = "MineKot wraps safely structured lines beyond 120 characters.",
-        debt = Debt.FIVE_MINS,
+        debt = Debt.TEN_SECONDS,
     )
 
     override val ruleName: RuleName get() = RuleName(issue.id)

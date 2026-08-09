@@ -1,1 +1,1 @@
-org.minekot.toolchain.lint.MineKotRuleSetProvider
+org.minekot.toolchain.lint.core.MineKotRuleSetProvider

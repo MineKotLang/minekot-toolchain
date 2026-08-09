@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.practices
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
@@ -6,6 +6,10 @@ import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
+import org.minekot.toolchain.lint.core.CodeSmell
+import org.minekot.toolchain.lint.core.Debt
+import org.minekot.toolchain.lint.core.Issue
+import org.minekot.toolchain.lint.core.Severity
 
 /**
  * Requires KDoc for public API and syntactically non-obvious internal properties.

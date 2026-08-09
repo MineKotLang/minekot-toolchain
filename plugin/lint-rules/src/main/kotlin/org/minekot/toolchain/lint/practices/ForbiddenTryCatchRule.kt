@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.practices
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
@@ -7,6 +7,10 @@ import dev.detekt.api.RuleName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.minekot.toolchain.lint.core.CodeSmell
+import org.minekot.toolchain.lint.core.Debt
+import org.minekot.toolchain.lint.core.Issue
+import org.minekot.toolchain.lint.core.Severity
 
 /**
  * Flags catch clauses that swallow failures or can break coroutine cancellation.

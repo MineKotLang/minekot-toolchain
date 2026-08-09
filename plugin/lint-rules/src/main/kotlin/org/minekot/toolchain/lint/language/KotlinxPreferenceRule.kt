@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.language
 
 import com.intellij.psi.PsiComment
 import dev.detekt.api.Config
@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtImportDirective
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Flags Java APIs where Kotlin standard library or kotlinx APIs are preferred.

@@ -1,9 +1,12 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.formatting
 
 import dev.detekt.api.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.minekot.toolchain.lint.core.*
+import org.minekot.toolchain.lint.core.Issue
+import org.minekot.toolchain.lint.core.Severity
 
 /**
  * Reports raw rich text only after resolving an Adventure or MineKot text flow.

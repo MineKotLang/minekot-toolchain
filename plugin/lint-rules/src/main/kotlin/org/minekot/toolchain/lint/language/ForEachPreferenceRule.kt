@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.language
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
@@ -8,6 +8,7 @@ import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Prefers forEach for collection iteration when loop control and indexed iteration are unnecessary.

@@ -9,6 +9,10 @@ import net.kyori.adventure.text.minimessage.MiniMessage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.minekot.toolchain.lint.formatting.MiniMessageTextRule
+import org.minekot.toolchain.lint.language.CoroutinePreferenceRule
+import org.minekot.toolchain.lint.language.ResolvedApiPreferenceRule
+import org.minekot.toolchain.lint.practices.ExplicitScopeInNestedScopeRule
 import java.nio.file.Path
 
 class MineKotAnalysisRulesTest {

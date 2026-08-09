@@ -1,36 +1,105 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.core
 
 import dev.detekt.api.Config
 import dev.detekt.api.Rule
+import org.minekot.toolchain.lint.formatting.*
+import org.minekot.toolchain.lint.language.CoroutinePreferenceRule
+import org.minekot.toolchain.lint.language.ForEachPreferenceRule
+import org.minekot.toolchain.lint.language.KotlinxPreferenceRule
+import org.minekot.toolchain.lint.language.ResolvedApiPreferenceRule
+import org.minekot.toolchain.lint.practices.*
+import org.minekot.toolchain.lint.structure.GradleDslConventionsRule
+import org.minekot.toolchain.lint.structure.ImportPolicyRule
+import org.minekot.toolchain.lint.structure.SourceFilePolicyRule
 
-/** Lifecycle disposition for a MineKot rule. */
+/**
+ * Defines the lifecycle disposition of a MineKot lint rule, indicating its current status
+ * and future maintenance plans.
+ *
+ * This enum helps in managing the evolution of lint rules, providing clear signals
+ * about their stability and whether they are recommended for use.
+ */
 enum class MineKotRuleDisposition {
+    /**
+     * The rule is actively maintained, stable, and recommended for use.
+     *
+     * Rules with this disposition are considered part of the core linting experience
+     * and are expected to remain stable across versions.
+     */
     KEEP,
+
+    /**
+     * The rule is currently active but is slated for a potential rewrite or significant
+     * improvement in a future release.
+     *
+     * While functional, its implementation or scope might change, potentially leading
+     * to breaking changes in how it's configured or how issues are reported.
+     */
     REWRITE,
+
+    /**
+     * The rule is deprecated and no longer recommended for use.
+     *
+     * Deprecated rules might be removed in future versions or have been superseded
+     * by a more robust or semantically correct alternative. Users should migrate
+     * to the suggested replacement if available.
+     */
     DEPRECATED,
 }
 
-/** Safety classification for automatic correction. */
+/**
+ * Specifies the behavior and safety level of a lint rule's autocorrection mechanism.
+ *
+ * This helps users understand the implications of applying automatic fixes suggested
+ * by the lint tool.
+ */
 enum class MineKotCorrectionMode {
+    /**
+     * Autocorrection for this rule is considered safe and will not alter the
+     * semantic meaning or behavior of the code.
+     *
+     * These corrections typically involve formatting, style, or minor syntactic
+     * changes that are guaranteed to be non-breaking.
+     */
     SAFE,
+
+    /**
+     * Autocorrection is not available or explicitly disabled for this rule.
+     *
+     * This might be due to the complexity of the fix, the potential for semantic
+     * changes, or simply because no automatic fix has been implemented.
+     */
     DISABLED,
+
+    /**
+     * Autocorrection for this rule might introduce semantic changes or alter
+     * the behavior of the code, requiring careful review and "semantic proof"
+     * from the developer.
+     *
+     * Applying such corrections without understanding their implications could
+     * lead to subtle bugs.
+     */
     REQUIRES_SEMANTIC_PROOF,
 }
 
 /**
- * Metadata for a MineKot Detekt rule.
+ * Describes a single MineKot lint rule, providing metadata for its configuration,
+ * reporting, and lifecycle management within the Detekt plugin.
  *
- * @property id Rule id.
- * @property defaultActive Whether the bundled config enables this rule.
- * @property severity Rule severity name.
- * @property falsePositiveRisk False-positive risk description.
- * @property codestyleSection MineKot codestyle section implemented by this rule.
- * @property disposition Current rule lifecycle decision.
- * @property reportsByDefault Whether the bundled configuration reports findings.
- * @property correctionMode Automatic-correction safety classification.
- * @property replacementId Replacement rule for deprecated entries.
- * @property requiresAnalysisApi Whether the rule runs only with compiler analysis.
- * @property factory Rule factory.
+ * @property id A unique identifier for the lint rule, used for configuration and reporting.
+ * @property defaultActive Whether the rule is enabled by default.
+ * @property severity Impact level (e.g., "Style", "Warning", "Error").
+ * @property falsePositiveRisk Likelihood of incorrectly flagging valid code ("low", "medium", "high").
+ * @property codestyleSection Reference to the relevant MineKot Code Style Guide section(s).
+ * @property disposition Lifecycle status: [MineKotRuleDisposition.KEEP], [MineKotRuleDisposition.REWRITE],
+ *   or [MineKotRuleDisposition.DEPRECATED]. Defaults to [MineKotRuleDisposition.KEEP].
+ * @property reportsByDefault Whether the rule reports issues by default (mirrors [defaultActive] unless overridden).
+ * @property correctionMode Safety level of autocorrection: [MineKotCorrectionMode.SAFE],
+ *   [MineKotCorrectionMode.DISABLED], or [MineKotCorrectionMode.REQUIRES_SEMANTIC_PROOF].
+ *   Defaults to [MineKotCorrectionMode.DISABLED].
+ * @property replacementId If [MineKotRuleDisposition.DEPRECATED], the [id] of the superseding rule.
+ * @property requiresAnalysisApi Whether the rule requires Detekt's Analysis API (for semantic information, slower).
+ * @property factory Factory function to create a [Rule] instance from a [Config].
  */
 data class MineKotRuleDescriptor(
     val id: String,
@@ -47,7 +116,16 @@ data class MineKotRuleDescriptor(
 )
 
 /**
- * Data-driven rule registry used by provider, docs, and tests.
+ * A comprehensive list of all custom MineKot lint rules available in this plugin.
+ *
+ * This list serves as the central registry for the Detekt plugin, allowing it to
+ * discover, configure, and apply each defined lint rule. Each entry provides
+ * detailed metadata about a specific rule, including its ID, default activation
+ * status, severity, and how it handles autocorrection.
+ *
+ * Rules are categorized and described according to the MineKot Code Style Guide.
+ * Developers can refer to this list to understand the full suite of custom checks
+ * enforced by the MineKot toolchain.
  */
 val mineKotRuleDescriptors: List<MineKotRuleDescriptor> = listOf(
     MineKotRuleDescriptor(

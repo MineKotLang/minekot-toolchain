@@ -215,11 +215,17 @@ class MineKotToolchainPluginTest {
     }
 
     @Test
-    fun `full analysis excludes generated build sources from codestyle findings`() {
+    fun `all regular Detekt tasks exclude generated build sources from codestyle findings`() {
         val projectDirectory = createProject()
         writeBuildFixture(projectDirectory, "format.gradle.kts")
         projectDirectory.resolve("build.gradle.kts").toFile().appendText(
-            "\nkotlin { sourceSets.test { kotlin.srcDir(layout.buildDirectory.dir(\"generated/ksp/test/kotlin\")) } }\n",
+            """
+
+            kotlin { sourceSets.test { kotlin.srcDir(layout.buildDirectory.dir("generated/ksp/test/kotlin")) } }
+            tasks.register<dev.detekt.gradle.Detekt>("detektGeneratedProbe") {
+                source(layout.buildDirectory.dir("generated/ksp/test/kotlin"))
+            }
+            """.trimIndent() + "\n",
         )
         val generatedSource = projectDirectory.resolve("build/generated/ksp/test/kotlin/Generated.kt")
         Files.createDirectories(generatedSource.parent)
@@ -230,9 +236,10 @@ class MineKotToolchainPluginTest {
         Files.createDirectories(handwrittenSource.parent)
         handwrittenSource.toFile().writeText("internal fun handwritten(): Unit = Unit\n")
 
-        val result = runGradle(projectDirectory, "detektTest")
+        val result = runGradle(projectDirectory, "detektTest", "detektGeneratedProbe")
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":detektTest")?.outcome)
+        assertEquals(TaskOutcome.NO_SOURCE, result.task(":detektGeneratedProbe")?.outcome)
         assertFalse(result.output.contains("Unexpected indentation"), result.output)
     }
 
@@ -430,6 +437,9 @@ class MineKotToolchainPluginTest {
         assertTrue(detektConfig.contains("  MagicNumber:\n    active: false"))
         assertTrue(detektConfig.contains("  WildcardImport:\n    active: false"))
         assertTrue(detektConfig.contains("  SleepInsteadOfDelay:\n    active: false"))
+        setOf("Indentation", "NoConsecutiveBlankLines").forEach { ruleName ->
+            assertTrue(detektConfig.contains("  ${ruleName}:\n    active: false"))
+        }
 
         val workspace = projectDirectory.resolve(".idea/workspace.xml").toFile().readText()
 
@@ -846,6 +856,11 @@ class MineKotToolchainPluginTest {
         assertFalse(result.output.contains("mineKotFormatConvergencePass"))
         assertFalse(result.output.contains("mineKotFormatVerificationPass"))
         assertTrue(sourceFile.toFile().readText().contains("\"Hello ${'$'}{name}\""))
+        assertTrue(result.output.contains("src/main/kotlin/Example.kt"), result.output)
+        assertFalse(
+            result.output.contains("build/tmp/minekot/format-sources/src/main/kotlin/Example.kt"),
+            result.output,
+        )
 
         val repeatedResult = runGradle(projectDirectory, "mineKotFormat")
 

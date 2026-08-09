@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.formatting
 
 import com.intellij.psi.PsiComment
 import dev.detekt.api.Config
@@ -8,6 +8,7 @@ import dev.detekt.api.RuleName
 import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Requires a trailing comma in every supported multiline comma-separated construct.

@@ -1,15 +1,13 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.structure
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
 import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
 import dev.detekt.api.internal.AutoCorrectable
-import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Enforces MineKot Gradle Kotlin DSL conventions that can be determined safely from syntax.
@@ -167,7 +165,7 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
         if (calleeExpression?.text != "kotlin") {
             return false
         }
-        val valueArgument = parent as? org.jetbrains.kotlin.psi.KtValueArgument ?: return false
+        val valueArgument = parent as? KtValueArgument ?: return false
         val dependencyCall = valueArgument.parent?.parent as? KtCallExpression ?: return false
         return dependencyConfigurationPattern.matches(dependencyCall.calleeExpression?.text.orEmpty())
     }

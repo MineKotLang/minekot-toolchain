@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.4 - 2026-08-09
+
+### Fixes
+
+- Disable the readability-negative `Indentation` and `NoConsecutiveBlankLines` inspections.
+- Exclude generated build output from every regular Detekt task, including consumer-defined tasks.
+- Report staged formatter findings against repository-relative original source paths instead of `build/tmp` mirrors.
+
+### Internal changes
+
+- Organize custom lint implementation into core, formatting, language, practices, and structure packages without changing rule IDs.
+
 ## 1.3.3 - 2026-08-03
 
 ### Fixes

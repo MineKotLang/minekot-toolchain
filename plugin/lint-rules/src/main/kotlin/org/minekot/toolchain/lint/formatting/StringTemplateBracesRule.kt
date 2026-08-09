@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.formatting
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
@@ -8,6 +8,7 @@ import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Requires braces for string template entries.

@@ -1,12 +1,16 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.practices
 
 import com.intellij.psi.util.PsiTreeUtil
 import dev.detekt.api.*
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.*
-import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.minekot.toolchain.lint.core.*
+import org.minekot.toolchain.lint.core.Issue
+import org.minekot.toolchain.lint.core.Severity
 
 /**
  * Reports resolved implicit outer class or object members inside plain nested lambdas.

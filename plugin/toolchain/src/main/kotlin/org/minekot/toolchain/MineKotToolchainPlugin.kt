@@ -10,6 +10,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -30,6 +31,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerArgumentsProducer
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.JarURLConnection
 import java.net.URI
+import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Applies MineKot build, dependency, publishing, and lint conventions.
@@ -484,14 +486,14 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.jvmTarget.set(javaVersion.toString())
         }
         val buildRoot = project.layout.buildDirectory.get().asFile.toPath().toAbsolutePath().normalize()
-        project.tasks.withType(Detekt::class.java)
-            .matching { task -> task.name in fullAnalysisTaskNames }
-            .configureEach { task ->
+        project.tasks.withType(Detekt::class.java).configureEach { task ->
+            if (task.name !in stagedFormatDetektTaskNames) {
                 // Generated sources must compile, but their producer-owned layout is not handwritten codestyle input.
                 task.exclude { details ->
                     details.file.toPath().toAbsolutePath().normalize().startsWith(buildRoot)
                 }
             }
+        }
         project.tasks.named("detekt", Detekt::class.java) {
             it.source(project.buildFile)
         }
@@ -535,6 +537,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.autoCorrect.set(true)
             it.ignoreFailures.set(true)
             it.source(sourceTree)
+            it.useOriginalSourceDiagnosticPaths(stagingDirectory, project.layout.projectDirectory)
             it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
             it.outputs.upToDateWhen { false }
             it.outputs.cacheIf { false }
@@ -555,6 +558,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
             it.autoCorrect.set(true)
             it.ignoreFailures.set(true)
             it.source(sourceTree)
+            it.useOriginalSourceDiagnosticPaths(stagingDirectory, project.layout.projectDirectory)
             it.pluginClasspath.setFrom(project.configurations.getByName("detektPlugins"))
             it.outputs.upToDateWhen { false }
             it.outputs.cacheIf { false }
@@ -601,6 +605,50 @@ class MineKotToolchainPlugin : Plugin<Project> {
     private fun Project.addDependencies(configurationName: String, vararg notations: String) {
         notations.forEach { notation ->
             dependencies.add(configurationName, notation)
+        }
+    }
+
+    /**
+     * Reports staged formatter findings with repository-relative source paths.
+     *
+     * The staged mirror preserves every repository-relative path. Detekt therefore strips only the disposable mirror
+     * prefix, leaving diagnostics such as `docs/cookbook/menu.mkot.kts` that resolve to the original project file.
+     */
+    private fun Detekt.useOriginalSourceDiagnosticPaths(
+        stagingDirectory: Provider<Directory>,
+        projectDirectory: Directory,
+    ) {
+        basePath.set(stagingDirectory.map { directory -> directory.asFile.absolutePath })
+        reports.checkstyle.required.set(true)
+        logging.captureStandardOutput(LogLevel.DEBUG)
+        logging.captureStandardError(LogLevel.DEBUG)
+        doLast {
+            reportStagedDetektFindings(projectDirectory)
+        }
+    }
+
+    /** Re-emits Detekt's relative Checkstyle findings without accessing project state during task execution. */
+    private fun Detekt.reportStagedDetektFindings(projectDirectory: Directory) {
+        val report = reports.checkstyle.outputLocation.get().asFile
+        if (!report.isFile) return
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(report)
+        val files = document.getElementsByTagName("file")
+        repeat(files.length) { fileIndex ->
+            val file = files.item(fileIndex)
+            val relativePath = file.attributes.getNamedItem("name").nodeValue
+            val originalPath = projectDirectory.file(relativePath).asFile.absolutePath
+            val errors = file.childNodes
+            repeat(errors.length) { errorIndex ->
+                val error = errors.item(errorIndex)
+                if (error.nodeName == "error") {
+                    val attributes = error.attributes
+                    val line = attributes.getNamedItem("line").nodeValue
+                    val column = attributes.getNamedItem("column").nodeValue
+                    val message = attributes.getNamedItem("message").nodeValue
+                    val rule = attributes.getNamedItem("source").nodeValue.substringAfterLast('.')
+                    logger.error("e: ${originalPath}:${line}:${column} ${message} [${rule}]")
+                }
+            }
         }
     }
 
@@ -1121,6 +1169,8 @@ class MineKotToolchainPlugin : Plugin<Project> {
         private const val DETEKT_PROVIDER_SERVICE: String = "META-INF/services/dev.detekt.api.RuleSetProvider"
         private const val KSP_PLUGIN_ID: String = "com.google.devtools.ksp"
         private val fullAnalysisTaskNames: Set<String> = setOf("detektMain", "detektTest")
+        private val stagedFormatDetektTaskNames: Set<String> =
+            setOf("mineKotFormatFirstPass", "mineKotFormatSecondPass")
         private const val DEFAULT_RELEASES_URL = "https://maven2.minekot.org/releases"
         private const val DEFAULT_SNAPSHOTS_URL = "https://maven2.minekot.org/snapshots"
 

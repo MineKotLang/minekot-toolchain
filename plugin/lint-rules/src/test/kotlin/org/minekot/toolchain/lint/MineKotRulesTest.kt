@@ -6,6 +6,27 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
+import org.minekot.toolchain.lint.core.MineKotCorrectionMode
+import org.minekot.toolchain.lint.core.MineKotRuleDescriptor
+import org.minekot.toolchain.lint.core.MineKotRuleDisposition
+import org.minekot.toolchain.lint.core.MineKotRuleSetProvider
+import org.minekot.toolchain.lint.core.mineKotRuleDescriptors
+import org.minekot.toolchain.lint.formatting.CommentFormattingRule
+import org.minekot.toolchain.lint.formatting.LineWrappingRule
+import org.minekot.toolchain.lint.formatting.MiniMessageTextRule
+import org.minekot.toolchain.lint.formatting.StringTemplateBracesRule
+import org.minekot.toolchain.lint.formatting.TrailingCommaRule
+import org.minekot.toolchain.lint.language.CoroutinePreferenceRule
+import org.minekot.toolchain.lint.language.ForEachPreferenceRule
+import org.minekot.toolchain.lint.language.KotlinxPreferenceRule
+import org.minekot.toolchain.lint.practices.ExplicitScopeInNestedScopeRule
+import org.minekot.toolchain.lint.practices.ForbiddenTryCatchRule
+import org.minekot.toolchain.lint.practices.MagicNumberRule
+import org.minekot.toolchain.lint.practices.MissingKDocRule
+import org.minekot.toolchain.lint.practices.ResultHandlingRule
+import org.minekot.toolchain.lint.structure.GradleDslConventionsRule
+import org.minekot.toolchain.lint.structure.ImportPolicyRule
+import org.minekot.toolchain.lint.structure.SourceFilePolicyRule
 import java.util.*
 
 class MineKotRulesTest {
@@ -1774,17 +1795,9 @@ class MineKotRulesTest {
         )
 
         private val ktlintRuleCases: Map<String, KtlintRuleCase> = mapOf(
-            "Indentation" to KtlintRuleCase(
-                "fun run() {\n  Unit\n}",
-                "fun run() {\n    Unit\n}",
-            ),
             "NoBlankLineBeforeRbrace" to KtlintRuleCase(
                 "fun run() {\n    Unit\n\n}",
                 "fun run() {\n    Unit\n}",
-            ),
-            "NoConsecutiveBlankLines" to KtlintRuleCase(
-                "val first = 1\n\n\nval second = 2",
-                "val first = 1\n\nval second = 2",
             ),
             "NoEmptyFirstLineInClassBody" to KtlintRuleCase(
                 "class Service {\n\n    val name = \"MineKot\"\n}",

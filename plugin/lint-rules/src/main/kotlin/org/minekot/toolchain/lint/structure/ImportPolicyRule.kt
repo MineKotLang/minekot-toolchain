@@ -1,4 +1,4 @@
-package org.minekot.toolchain.lint
+package org.minekot.toolchain.lint.structure
 
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
@@ -7,6 +7,7 @@ import dev.detekt.api.RuleName
 import dev.detekt.api.internal.AutoCorrectable
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtImportDirective
+import org.minekot.toolchain.lint.core.*
 
 /**
  * Enforces MineKot wildcard thresholds and nested-class import policy.
