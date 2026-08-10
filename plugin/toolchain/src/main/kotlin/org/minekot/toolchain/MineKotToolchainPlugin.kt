@@ -266,7 +266,7 @@ class MineKotToolchainPlugin : Plugin<Project> {
         extension.lint.enabled.gradlePropertyConvention(project, "minekotToolchain.lint.enabled", true)
         extension.ciCd.enabled.gradlePropertyConvention(project, "minekotToolchain.ciCd.enabled", false)
         extension.ciCd.tagPrefix.gradlePropertyConvention(project, "minekotToolchain.ciCd.tagPrefix", "v")
-        extension.lint.autoCorrect.gradlePropertyConvention(project, "minekotToolchain.lint.autoCorrect", false)
+        extension.lint.autoCorrect.gradlePropertyConvention(project, "minekotToolchain.lint.autoCorrect", true)
         extension.lint.buildUponDefaultConfig.gradlePropertyConvention(
             project,
             "minekotToolchain.lint.buildUponDefaultConfig",

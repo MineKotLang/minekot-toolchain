@@ -128,7 +128,9 @@ class CommentFormattingRule(config: Config) : Rule(config, "MineKot codestyle ru
      * @param message The descriptive message for the reported issue.
      */
     private fun reportFinding(comment: PsiComment, message: String) {
-        report(CodeSmell(issue, Entity.from(comment), message))
+        if (!autoCorrect) {
+            report(CodeSmell(issue, Entity.from(comment), message))
+        }
     }
 
     /**

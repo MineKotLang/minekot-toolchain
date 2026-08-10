@@ -328,8 +328,24 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMineKotLint")?.outcome)
         assertTrue(result.output.contains("detekt=true"))
+        assertTrue(result.output.contains("autoCorrect=true"))
         assertTrue(result.output.contains("buildUponDefaultConfig=false"))
         assertTrue(result.output.contains("detektPluginFile=minekot-toolchain-lint-rules"))
+    }
+
+    @Test
+    fun `default Detekt detection automatically corrects comment formatting`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "lint.gradle.kts")
+        val sourceFile = projectDirectory.resolve("src/main/kotlin/Example.kt")
+        Files.createDirectories(sourceFile.parent)
+        sourceFile.toFile().writeText("private fun run(): Unit = Unit\n//compact\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "detektMain")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":detektMain")?.outcome)
+        assertEquals("private fun run(): Unit = Unit\n// compact\n", sourceFile.toFile().readText())
     }
 
     @Test
@@ -865,6 +881,31 @@ class MineKotToolchainPluginTest {
         val repeatedResult = runGradle(projectDirectory, "mineKotFormat")
 
         assertEquals(TaskOutcome.SUCCESS, repeatedResult.task(":mineKotFormatCompileStaged")?.outcome)
+    }
+
+    @Test
+    fun `staged formatter reports subproject script findings against original sources`() {
+        val projectDirectory = createProject()
+        projectDirectory.resolve("settings.gradle.kts").toFile().appendText("\ninclude(\":paper\")\n")
+        writeBuildFixture(projectDirectory, "format.gradle.kts")
+        val subprojectDirectory = projectDirectory.resolve("paper")
+        Files.createDirectories(subprojectDirectory)
+        subprojectDirectory.resolve("build.gradle.kts").toFile().writeText(
+            "plugins { id(\"org.minekot.toolchain\") }\n",
+        )
+        val scriptFile = subprojectDirectory.resolve("src/main/resources/scripts/example.mkot.kts")
+        Files.createDirectories(scriptFile.parent)
+        scriptFile.toFile().writeText("fun unexplainedValue(): Int = 42\n")
+        runGradle(projectDirectory, "writeMineKotCodestyle")
+
+        val result = runGradle(projectDirectory, "mineKotFormatFirstPass")
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":paper:mineKotFormatFirstPass")?.outcome)
+        assertTrue(result.output.contains(scriptFile.toFile().absolutePath), result.output)
+        assertFalse(
+            result.output.contains("paper/build/tmp/minekot/format-sources/src/main/resources/scripts/example.mkot.kts"),
+            result.output,
+        )
     }
 
     @Test

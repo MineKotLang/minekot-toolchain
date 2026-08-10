@@ -5,10 +5,7 @@ import dev.detekt.api.Entity
 import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
 import org.jetbrains.kotlin.lexer.KtTokens
-import org.jetbrains.kotlin.psi.KtAnnotationEntry
-import org.jetbrains.kotlin.psi.KtConstantExpression
-import org.jetbrains.kotlin.psi.KtPackageDirective
-import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.minekot.toolchain.lint.core.CodeSmell
 import org.minekot.toolchain.lint.core.Debt
@@ -47,8 +44,21 @@ class MagicNumberRule(config: Config) : Rule(config, "MineKot codestyle rule.") 
                 text.toMineKotNumberOrNull() !in allowedNumbers &&
                 parents.filterIsInstance<KtAnnotationEntry>().firstOrNull() == null &&
                 parents.filterIsInstance<KtPackageDirective>().firstOrNull() == null &&
+                !isDirectNamedArgument() &&
                 !isNamedPropertyInitializer() &&
                 parents.filterIsInstance<KtProperty>().firstOrNull()?.isConstant() != true
+
+    private fun KtConstantExpression.isDirectNamedArgument(): Boolean {
+        val argument = when (val directParent = parent) {
+            is KtValueArgument -> directParent
+            is KtPrefixExpression -> directParent.parent as? KtValueArgument
+            else -> null
+        } ?: return false
+        val argumentExpression = argument.getArgumentExpression()
+        return argument.getArgumentName() != null &&
+                (argumentExpression == this ||
+                        (argumentExpression as? KtPrefixExpression)?.baseExpression == this)
+    }
 
     private fun KtConstantExpression.isNamedPropertyInitializer(): Boolean =
         (parent as? KtProperty)?.initializer == this

@@ -507,6 +507,6 @@ private fun ObjectFactory.versionedFeatureBlock(enabled: Boolean, version: Strin
 private fun ObjectFactory.lintFeatureBlock(enabled: Boolean): LintFeatureBlock =
     newInstance(LintFeatureBlock::class.java).apply {
         this.enabled.convention(enabled)
-        autoCorrect.convention(false)
+        autoCorrect.convention(true)
         buildUponDefaultConfig.convention(false)
     }

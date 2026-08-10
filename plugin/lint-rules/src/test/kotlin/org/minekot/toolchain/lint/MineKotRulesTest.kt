@@ -621,6 +621,33 @@ class MineKotRulesTest {
             source = "val projectJavaVersion = 21",
         ),
         RuleCase(
+            name = "accepts self-documenting named numeric call arguments",
+            expectedFindings = 0,
+            filename = "menu.mkot.kts",
+            source =
+                """
+                val dashboard = menu(rows = 3, "Dashboard".parse()) {
+                    slot(index = 13, item)
+                }
+                """,
+        ),
+        RuleCase(
+            name = "still flags equivalent unexplained positional call arguments",
+            expectedFindings = 2,
+            filename = "menu.mkot.kts",
+            source =
+                """
+                val dashboard = menu(3, "Dashboard".parse()) {
+                    slot(13, item)
+                }
+                """,
+        ),
+        RuleCase(
+            name = "still flags numeric expressions hidden inside named arguments",
+            expectedFindings = 2,
+            source = "fun run() = configure(timeoutMillis = 5 * 1_000)",
+        ),
+        RuleCase(
             name = "accepts numbers in annotations",
             expectedFindings = 0,
             source =
@@ -1047,6 +1074,41 @@ class MineKotRulesTest {
                 tasks.register("prepareServerRun")
                 tasks.withType<Test>().configureEach { useJUnitPlatform() }
                 maven("https://repo.example.com")
+                """,
+        ),
+        RuleCase(
+            name = "flags build script plugins declared after build configuration",
+            expectedFindings = 1,
+            filename = "build.gradle.kts",
+            source =
+                """
+                repositories {
+                    mavenCentral()
+                }
+
+                plugins {
+                    id("minekot.module")
+                }
+                """,
+        ),
+        RuleCase(
+            name = "accepts settings plugin management before the settings plugins block",
+            expectedFindings = 0,
+            filename = "settings.gradle.kts",
+            source =
+                """
+                rootProject.name = "MineKot"
+
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                        mavenCentral()
+                    }
+                }
+
+                plugins {
+                    id("com.gradle.develocity") version "4.3.2"
+                }
                 """,
         ),
         RuleCase(
@@ -1488,7 +1550,7 @@ class MineKotRulesTest {
         val firstPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(source)
         val secondPass = CommentFormattingRule(mineKotAutoCorrectConfig).lintAndCorrect(firstPass.correctedSource)
 
-        assertEquals(5, firstPass.findings.size)
+        assertEquals(0, firstPass.findings.size)
         assertTrue(firstPass.correctedSource.contains("    // explanation\n    /* block */\n"))
         assertEquals(0, secondPass.findings.size)
         assertEquals(firstPass.correctedSource, secondPass.correctedSource)

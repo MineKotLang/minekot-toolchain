@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.5 - 2026-08-11
+
+### Fixes
+
+- Exclude direct named numeric call arguments from `MagicNumber` while retaining positional and nested-expression findings.
+- Apply build-script plugin ordering only to `build.gradle.kts`, preserving valid `settings.gradle.kts` plugin-management layout.
+- Enable safe Detekt auto-correction by default and correct comment spacing and alignment without failing the corrected run.
+
+### Tests
+
+- Cover named and positional numeric arguments, build and settings script ordering, automatic comment correction, and original-source diagnostic paths for `.mkot.kts` resources.
+
 ## 1.3.4 - 2026-08-09
 
 ### Fixes

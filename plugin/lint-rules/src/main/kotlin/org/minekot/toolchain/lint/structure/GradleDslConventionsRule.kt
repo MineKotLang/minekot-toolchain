@@ -38,12 +38,19 @@ class GradleDslConventionsRule(config: Config) : Rule(config, "MineKot codestyle
             return
         }
         val source = root.text
-        val pluginsOffset = source.indexOf("plugins {")
-        val firstBuildConfigurationOffset = listOf(source.indexOf("repositories {"), source.indexOf("dependencies {"))
-            .filter { offset -> offset >= 0 }
-            .minOrNull()
-        if (pluginsOffset >= 0 && firstBuildConfigurationOffset != null && pluginsOffset > firstBuildConfigurationOffset) {
-            root.reportConvention("Place the plugins block before build configuration blocks.")
+        if (root.name == "build.gradle.kts") {
+            val pluginsOffset = source.indexOf("plugins {")
+            val firstBuildConfigurationOffset =
+                listOf(source.indexOf("repositories {"), source.indexOf("dependencies {"))
+                    .filter { offset -> offset >= 0 }
+                    .minOrNull()
+            val pluginsFollowBuildConfiguration =
+                pluginsOffset >= 0 &&
+                        firstBuildConfigurationOffset != null &&
+                        pluginsOffset > firstBuildConfigurationOffset
+            if (pluginsFollowBuildConfiguration) {
+                root.reportConvention("Place the plugins block before build configuration blocks.")
+            }
         }
         val localRepositoryOffset = source.indexOf("mavenLocal()")
         val centralRepositoryOffset = source.indexOf("mavenCentral()")
