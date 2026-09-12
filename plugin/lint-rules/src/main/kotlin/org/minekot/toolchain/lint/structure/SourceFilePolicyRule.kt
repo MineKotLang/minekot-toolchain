@@ -5,7 +5,9 @@ import dev.detekt.api.Entity
 import dev.detekt.api.Rule
 import dev.detekt.api.RuleName
 import dev.detekt.api.internal.AutoCorrectable
+import com.intellij.psi.PsiComment
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.minekot.toolchain.lint.core.*
 
 /**
@@ -38,23 +40,25 @@ class SourceFilePolicyRule(config: Config) : Rule(config, "MineKot codestyle rul
         if (source.startsWith('\uFEFF')) {
             edits.replace(0, 1, "")
         }
-        reportFormatterTags(root, source)
+        reportFormatterTags(root)
     }
 
-    private fun reportFormatterTags(root: KtFile, source: String) {
-        var disabledDepth = 0
-        formatterTagPattern.findAll(source).forEach { match ->
-            when (match.groupValues[1]) {
-                "off" -> disabledDepth++
-                "on" -> if (disabledDepth == 0) {
-                    reportFinding(root, "Remove this unmatched @formatter:on tag.")
-                } else {
-                    disabledDepth--
+    private fun reportFormatterTags(root: KtFile) {
+        val disabledRegions = ArrayDeque<PsiComment>()
+        root.collectDescendantsOfType<PsiComment>().forEach { comment ->
+            formatterTagPattern.findAll(comment.text).forEach { match ->
+                when (match.groupValues[1]) {
+                    "off" -> disabledRegions.addLast(comment)
+                    "on" -> if (disabledRegions.isEmpty()) {
+                        reportFinding(root, "Remove this unmatched @formatter:" + "on tag.")
+                    } else {
+                        disabledRegions.removeLast()
+                    }
                 }
             }
         }
-        if (disabledDepth > 0) {
-            reportFinding(root, "Close every @formatter:off region with @formatter:on.")
+        if (disabledRegions.isNotEmpty()) {
+            reportFinding(root, "Close every @formatter:" + "off region with @formatter:" + "on.")
         }
     }
 

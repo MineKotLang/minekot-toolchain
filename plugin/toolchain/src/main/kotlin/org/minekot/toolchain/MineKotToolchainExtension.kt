@@ -425,6 +425,9 @@ abstract class VersionedFeatureBlock @Inject constructor(objects: ObjectFactory)
  * MineKot Detekt lint integration options.
  */
 abstract class LintFeatureBlock @Inject constructor(objects: ObjectFactory) : FeatureBlock(objects) {
+    /** Tested signed dynamic-rules lock. Resolution remains opt-in until explicitly enabled or overridden. */
+    val rules: RulesLockBlock = objects.newInstance(RulesLockBlock::class.java)
+
     /**
      * Whether Detekt should apply auto-corrections when supported.
      */
@@ -445,6 +448,35 @@ abstract class LintFeatureBlock @Inject constructor(objects: ObjectFactory) : Fe
 
     /** Assisted-fix preview report directory. */
     val assistReportDirectory: DirectoryProperty = objects.directoryProperty()
+}
+
+/** Atomic version and signed-manifest lock for dynamic MineKot rules. */
+abstract class RulesLockBlock @Inject constructor(objects: ObjectFactory) {
+    /** Whether remote rules resolution is enabled. */
+    val enabled: Property<Boolean> = objects.property(Boolean::class.java).convention(false)
+
+    /** Exact rules release version without tag prefix. */
+    val version: Property<String> = objects.property(String::class.java)
+
+    /** Exact lowercase SHA-256 of the signed release manifest. */
+    val manifestSha256: Property<String> = objects.property(String::class.java)
+
+    /** Selects one exact rules release atomically. */
+    fun lock(version: String, manifestSha256: String) {
+        require(version.matches(Regex("1\\.0\\.[0-9]+"))) { "Invalid MineKot rules version: $version" }
+        require(manifestSha256.matches(Regex("[0-9a-f]{64}"))) { "Invalid MineKot rules manifest SHA-256." }
+        this.version.set(version)
+        this.manifestSha256.set(manifestSha256)
+        enabled.set(true)
+    }
+
+    companion object {
+        /** Rules generation verified with this toolchain source revision. */
+        const val DEFAULT_VERSION = "1.0.3"
+
+        /** Signed manifest digest for [DEFAULT_VERSION]. */
+        const val DEFAULT_MANIFEST_SHA256 = "f2177cf690eb505882947df1a81a71c52ebfd0bcb54d6158eb0a3c057c2db2fd"
+    }
 }
 
 private fun ObjectFactory.featureBlock(enabled: Boolean): FeatureBlock =

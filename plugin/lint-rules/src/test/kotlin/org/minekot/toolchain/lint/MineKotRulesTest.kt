@@ -995,6 +995,18 @@ class MineKotRulesTest {
                 }
                 """,
         ),
+        RuleCase(
+            name = "accepts a multiline subjectless when condition",
+            expectedFindings = 0,
+            source =
+                """
+                fun select(first: Boolean, second: Boolean) = when {
+                    first ||
+                        second -> Unit
+                    else -> Unit
+                }
+                """,
+        ),
     )
 
     @TestFactory
@@ -1754,6 +1766,14 @@ class MineKotRulesTest {
         assertTrue(correctedAlias.contains("import kotlin.io.path.exists\n"), correctedAlias)
         assertTrue(correctedAlias.contains("import kotlin.io.path.exists as pathExists"), correctedAlias)
         assertEquals(partial, ResultHandlingRule(mineKotAutoCorrectConfig).lintAndCorrect(partial).correctedSource)
+    }
+
+    @Test
+    fun `formatter tags inside strings are ignored`() {
+        val source = "val text = \"@formatter:" + "on and @formatter:" + "off\""
+
+        assertTrue(SourceFilePolicyRule(Config.empty).lint(source).isEmpty())
+        assertTrue(ResultHandlingRule(Config.empty).lint("fun run() { println(\"${source}\") }").isEmpty())
     }
 
     private fun ruleCases(

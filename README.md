@@ -118,7 +118,9 @@ Library features are tracked by `mineKotLibraryFeatureDescriptors` so docs/tests
 
 ## Lint
 
-Bundled Detekt rules are registered through descriptors that record lifecycle disposition, default reporting, correction safety, replacements, and Analysis API requirements. Active rules report unsafe exception boundaries and Result handling, enforce string-template braces and bounded Adventure text/KDoc policy, and cover selected coroutine, value-extraction, receiver-scope, and resolved API preferences. Semantic rules resolve exact supported callable/receiver shapes during full analysis. Heuristic `KotlinxPreference` is deprecated and inactive. Corrections requiring unresolved semantic proof are disabled.
+Toolchain is the Gradle/Detekt host for verified dynamic rules. It embeds tested generation `1.0.3` with manifest SHA-256 `f2177cf690eb505882947df1a81a71c52ebfd0bcb54d6158eb0a3c057c2db2fd`; dynamic resolution remains opt-in during parity rollout. Enabling `lint.rules.enabled` uses that exact lock, while `lint.rules.lock(version, manifestSha256)` atomically selects another generation. The same resolved JAR drives diagnostics and deterministic formatting rounds.
+
+Concrete rule coverage lives in [`minekot-rules/CHECKS.md`](https://github.com/MineKotLang/minekot-rules/blob/master/CHECKS.md); shared contracts and Detekt adaptation live in [`minekot-inspections/CHECKS.md`](https://github.com/MineKotLang/minekot-inspections/blob/master/CHECKS.md); host-owned repository checks live in [CHECKS.md](./CHECKS.md).
 
 Run:
 

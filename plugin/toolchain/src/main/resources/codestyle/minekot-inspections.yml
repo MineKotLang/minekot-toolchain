@@ -1,0 +1,60 @@
+# MineKot shared inspection baseline
+schema-version: 1
+rules:
+  minekot.codestyle.comment-formatting:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.explicit-scope-in-nested-scope:
+    enabled: false
+    severity: INFO
+  minekot.codestyle.for-each-preference:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.gradle-dsl-conventions:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.import-policy:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.kotlinx-preference:
+    enabled: false
+    severity: INFO
+  minekot.codestyle.line-wrapping:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.magic-number:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.minimessage-text:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.missing-kdoc:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.resolved-api-preference:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.source-file-policy:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.string-template-braces:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.trailing-comma:
+    enabled: true
+    severity: WARNING
+  minekot.codestyle.whitespace-formatting:
+    enabled: true
+    severity: WARNING
+  minekot.concurrency.coroutine-preference:
+    enabled: true
+    severity: WARNING
+  minekot.correctness.forbidden-try-catch:
+    enabled: true
+    severity: WARNING
+  minekot.correctness.result-handling:
+    enabled: true
+    severity: WARNING
+  minekot.performance.gradle-configuration:
+    enabled: true
+    severity: WARNING

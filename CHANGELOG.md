@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Internal changes
+
+- Move concrete inspection roadmap ownership to `minekot-rules` and shared SPI/adapter ownership to `minekot-inspections`; retain only Gradle/Detekt host and repository-wide checks here.
+- Embed signed rules generation `1.0.3` as the tested opt-in default and retain atomic project override locks.
+- Resolve published inspection dependencies from MineKot Maven in the standalone composite-build smoke project.
+
 ## 1.3.5 - 2026-08-11
 
 ### Fixes

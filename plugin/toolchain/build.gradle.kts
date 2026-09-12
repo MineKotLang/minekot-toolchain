@@ -26,6 +26,12 @@ dependencies {
     implementation(libs.bundles.adventure)
     implementation(libs.commonmark)
     implementation(libs.commonmark.tables)
+    implementation(libs.minekot.inspections.detekt)
+    implementation(libs.minekot.inspections.core)
+    implementation(libs.minekot.inspections.loader)
+    implementation(variantOf(libs.minekot.inspections.loader.runtime) { classifier("private") }) {
+        isTransitive = false
+    }
     testImplementation(gradleTestKit())
     testImplementation(libs.junit.jupiter)
     kspPluginUnderTest(libs.ksp.gradle.plugin)

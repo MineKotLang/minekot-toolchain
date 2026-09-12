@@ -6,12 +6,102 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.minekot.inspections.loader.RulesVerificationReceipt
+import org.minekot.inspections.loader.runtime.ContentAddressedRulesCache
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
+import java.time.Instant
 import java.util.*
 
 class MineKotToolchainPluginTest {
+    @Test
+    fun `exact verified offline rules materialize stable task output`() {
+        val projectDirectory = createProject()
+        val userHome = Files.createTempDirectory("minekot-rules-offline-home")
+        val release = cacheRulesRelease(userHome)
+        writeDynamicRulesBuild(projectDirectory, release.manifestDigest)
+
+        val first = runGradle(
+            projectDirectory,
+            "resolveMineKotRules",
+            "--offline",
+            "--configuration-cache",
+            "-Duser.home=${userHome}",
+        )
+        val second = runGradle(
+            projectDirectory,
+            "resolveMineKotRules",
+            "--offline",
+            "--configuration-cache",
+            "-Duser.home=${userHome}",
+        )
+
+        assertEquals(TaskOutcome.SUCCESS, first.task(":resolveMineKotRules")?.outcome)
+        assertArrayEquals(
+            release.jar,
+            projectDirectory.resolve("build/minekot/rules/minekot-rules.jar").toFile().readBytes(),
+        )
+        assertTrue(second.output.contains("Reusing configuration cache."), second.output)
+    }
+
+    @Test
+    fun `offline exact rules cache miss fails before detekt`() {
+        val projectDirectory = createProject()
+        val userHome = Files.createTempDirectory("minekot-rules-empty-home")
+        writeDynamicRulesBuild(projectDirectory, "0".repeat(SHA_LENGTH))
+
+        val result = runGradleAndFail(
+            projectDirectory,
+            "resolveMineKotRules",
+            "--offline",
+            "-Duser.home=${userHome}",
+        )
+
+        assertTrue(result.output.contains("Exact verified rules manifest is absent from offline cache."), result.output)
+        assertNull(result.task(":detekt"))
+    }
+
+    @Test
+    fun `dynamic rules lock configures one exact resolver task`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "dynamic-rules-lock.gradle.kts")
+
+        val result = runGradle(projectDirectory, "printDynamicRulesLock")
+
+        assertTrue(result.output.contains("rulesVersion=1.0.7"))
+        assertTrue(result.output.contains("rulesDigest=${"0".repeat(64)}"))
+        assertTrue(result.output.contains("resolveTask=true"))
+    }
+
+    @Test
+    fun `tested dynamic rules lock remains opt in`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "dynamic-rules-default.gradle.kts")
+
+        val result = runGradle(projectDirectory, "printDynamicRulesDefault")
+
+        assertTrue(result.output.contains("rulesEnabled=false"))
+        assertTrue(result.output.contains("rulesVersion=1.0.3"))
+        assertTrue(
+            result.output.contains(
+                "rulesDigest=f2177cf690eb505882947df1a81a71c52ebfd0bcb54d6158eb0a3c057c2db2fd",
+            ),
+        )
+        assertTrue(result.output.contains("resolveTask=false"))
+    }
+
+    @Test
+    fun `dynamic rules reject partial lock`() {
+        val projectDirectory = createProject()
+        writeBuildFixture(projectDirectory, "dynamic-rules-partial.gradle.kts")
+
+        val result = runGradleAndFail(projectDirectory, "help")
+
+        assertTrue(result.output.contains("atomic lint.rules.lock"), result.output)
+    }
+
     @Test
     fun `plugin applies and wires enabled dependencies`() {
         val projectDirectory = createProject()
@@ -383,6 +473,7 @@ class MineKotToolchainPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":writeMineKotCodestyle")?.outcome)
         assertTrue(Files.exists(projectDirectory.resolve("config/detekt/minekot.yml")))
+        assertTrue(Files.exists(projectDirectory.resolve("config/minekot-inspections.yml")))
         assertTrue(Files.exists(projectDirectory.resolve(".idea/codeStyles/MineKot.xml")))
         assertTrue(Files.exists(projectDirectory.resolve(".idea/workspace.xml")))
 
@@ -456,6 +547,20 @@ class MineKotToolchainPluginTest {
         setOf("Indentation", "NoConsecutiveBlankLines").forEach { ruleName ->
             assertTrue(detektConfig.contains("  ${ruleName}:\n    active: false"))
         }
+
+        val sharedPolicy = projectDirectory.resolve("config/minekot-inspections.yml").toFile().readText()
+        assertTrue(sharedPolicy.startsWith("# MineKot shared inspection baseline\nschema-version: 1\n"))
+        assertEquals(
+            EXPECTED_DYNAMIC_RULE_COUNT,
+            Regex("^  minekot\\.", RegexOption.MULTILINE).findAll(sharedPolicy).count(),
+        )
+        assertTrue(
+            sharedPolicy.contains(
+                "  minekot.codestyle.explicit-scope-in-nested-scope:\n    enabled: false\n    severity: INFO",
+            ),
+        )
+        assertTrue(sharedPolicy.contains("  minekot.codestyle.whitespace-formatting:"))
+        assertTrue(sharedPolicy.contains("  minekot.performance.gradle-configuration:"))
 
         val workspace = projectDirectory.resolve(".idea/workspace.xml").toFile().readText()
 
@@ -1675,6 +1780,54 @@ class MineKotToolchainPluginTest {
         projectDirectory.resolve("build.gradle.kts").toFile().writeText(fixture)
     }
 
+    private fun writeDynamicRulesBuild(projectDirectory: Path, manifestDigest: String) {
+        val fixture = readFixture("build/dynamic-rules-lock.gradle.kts")
+            .replace("\"0\".repeat(64)", "\"${manifestDigest}\"")
+        projectDirectory.resolve("build.gradle.kts").toFile().writeText(fixture)
+    }
+
+    private fun cacheRulesRelease(userHome: Path): CachedRulesFixture {
+        val jar = "verified offline rules jar".encodeToByteArray()
+        val jarDigest = jar.sha256()
+        val manifest = """
+            {
+              "schemaVersion":1,
+              "rulesVersion":"${RULES_VERSION}",
+              "tag":"v${RULES_VERSION}",
+              "commitSha":"${"0".repeat(40)}",
+              "publishedAt":"2026-08-13T00:00:00Z",
+              "jarName":"minekot-rules-${RULES_VERSION}.jar",
+              "jarSize":${jar.size},
+              "jarSha256":"${jarDigest}",
+              "spiMajor":1,
+              "minimumCoreVersion":"1.0.0",
+              "maximumCoreVersionExclusive":"2.0.0",
+              "minimumJavaVersion":21,
+              "kotlinPsiBaseline":"2.4.10",
+              "testedHosts":[{
+                "hostType":"DETEKT",
+                "hostVersion":"2.0.0-alpha.5",
+                "kotlinVersion":"2.4.10"
+              }],
+              "catalogProvider":"org.minekot.rules.MineKotRulesCatalog",
+              "configurationSchemaVersion":1
+            }
+        """.trimIndent().encodeToByteArray()
+        val manifestDigest = manifest.sha256()
+        val receipt = RulesVerificationReceipt(
+            manifestDigest,
+            jarDigest,
+            Instant.parse("2026-08-13T00:00:00Z"),
+            "workflow",
+            "issuer",
+            "root",
+        )
+        ContentAddressedRulesCache(userHome.resolve(".minekot/rules/cache"))
+            .promote(jar, manifest, receipt)
+            .close()
+        return CachedRulesFixture(jar, manifestDigest)
+    }
+
     private fun writeGradleProperties(projectDirectory: Path, vararg lines: String) {
         projectDirectory.resolve("gradle.properties").toFile().writeText(lines.joinToString(separator = "\n"))
     }
@@ -1725,10 +1878,19 @@ class MineKotToolchainPluginTest {
         }.readText()
     }
 
+    private data class CachedRulesFixture(val jar: ByteArray, val manifestDigest: String)
+
     private companion object {
+        const val EXPECTED_DYNAMIC_RULE_COUNT = 19
+        const val RULES_VERSION = "1.0.7"
+        const val SHA_LENGTH = 64
         val assistJson: Json = Json {
             prettyPrint = true
             prettyPrintIndent = "  "
         }
     }
 }
+
+private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")
+    .digest(this)
+    .joinToString("") { byte -> "%02x".format(byte) }

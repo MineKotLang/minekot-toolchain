@@ -1,6 +1,7 @@
 package org.minekot.toolchain.lint.core
 
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiComment
 import dev.detekt.api.modifiedText
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
@@ -106,6 +107,19 @@ private data class MineKotTextEdit(
  * @return `true` if the element is inside a formatter control block, `false` otherwise.
  */
 internal fun KtElement.isInsideMineKotFormatterControl(): Boolean {
-    val prefix = containingKtFile.text.take(textRange.startOffset)
-    return prefix.lastIndexOf("@formatter:off") > prefix.lastIndexOf("@formatter:on")
+    var disabledDepth = 0
+    containingKtFile.collectDescendantsOfType<PsiComment>()
+        .asSequence()
+        .takeWhile { comment -> comment.textRange.startOffset < textRange.startOffset }
+        .flatMap { comment -> formatterTagPattern.findAll(comment.text) }
+        .forEach { match ->
+            if (match.groupValues[1] == "off") {
+                disabledDepth++
+            } else if (disabledDepth > 0) {
+                disabledDepth--
+            }
+        }
+    return disabledDepth > 0
 }
+
+private val formatterTagPattern: Regex = Regex("@formatter:(off|on)")

@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerArgumentsProducer
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.io.File
 import java.net.JarURLConnection
 import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
@@ -504,18 +505,78 @@ class MineKotToolchainPlugin : Plugin<Project> {
         project.tasks.withType(DetektCreateBaselineTask::class.java).configureEach {
             it.enabled = false
         }
-        project.dependencies.add("detektPlugins", project.files(detektProviderFiles()))
+        project.dependencies.add("detektPlugins", project.files(staticDetektProviderFiles()))
+        configureDynamicRules(project, lint)
         configureMineKotFormat(project)
     }
 
-    private fun detektProviderFiles(): List<java.io.File> =
+    private fun configureDynamicRules(project: Project, lint: LintFeatureBlock) {
+        if (!lint.rules.enabled.get()) return
+        require(lint.rules.version.isPresent == lint.rules.manifestSha256.isPresent) {
+            "Dynamic MineKot rules require one atomic lint.rules.lock(version, manifestSha256) declaration."
+        }
+        val resolutionService = project.gradle.sharedServices.registerIfAbsent(
+            "mineKotRulesResolution",
+            MineKotRulesResolutionService::class.java,
+        ) {}
+        val cacheDirectory = project.layout.dir(
+            project.providers.systemProperty("user.home").map { userHome ->
+                java.io.File(userHome, ".minekot/rules/cache")
+            },
+        )
+        val resolveRules = project.tasks.register("resolveMineKotRules", ResolveMineKotRulesTask::class.java) {
+            it.group = "minekot"
+            it.description = "Resolves and verifies the exact dynamic MineKot rules lock."
+            it.rulesVersion.set(lint.rules.version.orElse(RulesLockBlock.DEFAULT_VERSION))
+            it.manifestSha256.set(
+                lint.rules.manifestSha256.orElse(RulesLockBlock.DEFAULT_MANIFEST_SHA256),
+            )
+            it.offline.set(project.gradle.startParameter.isOffline)
+            it.javaVersion.set(project.extensions.getByType(MineKotToolchainExtension::class.java).build.javaVersion)
+            it.cacheDirectory.set(cacheDirectory)
+            it.outputJar.set(project.layout.buildDirectory.file("minekot/rules/minekot-rules.jar"))
+            it.resolutionService.set(resolutionService)
+            it.usesService(resolutionService)
+        }
+        project.dependencies.add(
+            "detektPlugins",
+            project.files(inspectionAdapterFiles() + inspectionApiFiles()),
+        )
+        project.dependencies.add("detektPlugins", project.files(resolveRules))
+        project.tasks.withType(Detekt::class.java).configureEach { task ->
+            task.dependsOn(resolveRules)
+        }
+    }
+
+    private fun staticDetektProviderFiles(): List<File> =
         javaClass.classLoader.getResources(DETEKT_PROVIDER_SERVICE)
             .toList()
-            .mapNotNull { resource ->
-                val connection = resource.openConnection() as? JarURLConnection ?: return@mapNotNull null
-                runCatching { java.io.File(connection.jarFileURL.toURI()) }.getOrNull()
+            .filterNot { resource ->
+                resource.readText().lineSequence().map(String::trim).any { it == DYNAMIC_DETEKT_PROVIDER }
             }
+            .mapNotNull(::resourceJarFile)
             .distinct()
+
+    private fun inspectionAdapterFiles(): List<File> =
+        serviceProviderFiles(DYNAMIC_DETEKT_PROVIDER)
+
+    private fun inspectionApiFiles(): List<File> =
+        resourceJarFiles(INSPECTION_CATALOG_CLASS)
+
+    private fun serviceProviderFiles(provider: String): List<File> =
+        javaClass.classLoader.getResources(DETEKT_PROVIDER_SERVICE)
+            .toList()
+            .filter { resource -> resource.readText().lineSequence().map(String::trim).any { it == provider } }
+            .mapNotNull(::resourceJarFile)
+            .distinct()
+
+    private fun resourceJarFiles(path: String): List<File> =
+        javaClass.classLoader.getResources(path).toList().mapNotNull(::resourceJarFile).distinct()
+
+    private fun resourceJarFile(resource: java.net.URL): File? {
+        val connection = resource.openConnection() as? JarURLConnection ?: return null
+        return runCatching { File(connection.jarFileURL.toURI()) }.getOrNull()
+    }
 
     private fun configureMineKotFormat(project: Project) {
         val stagingDirectory = project.layout.buildDirectory.dir("tmp/minekot/format-sources")
@@ -1166,7 +1227,10 @@ class MineKotToolchainPlugin : Plugin<Project> {
     )
 
     private companion object {
-        private const val DETEKT_PROVIDER_SERVICE: String = "META-INF/services/dev.detekt.api.RuleSetProvider"
+        private const val DETEKT_PROVIDER_SERVICE = "META-INF/services/dev.detekt.api.RuleSetProvider"
+        private const val DYNAMIC_DETEKT_PROVIDER = "org.minekot.inspections.detekt.MineKotDetektRuleSetProvider"
+        private const val INSPECTION_CATALOG_CLASS =
+            "org/minekot/inspections/core/MineKotInspectionCatalog.class"
         private const val KSP_PLUGIN_ID: String = "com.google.devtools.ksp"
         private val fullAnalysisTaskNames: Set<String> = setOf("detektMain", "detektTest")
         private val stagedFormatDetektTaskNames: Set<String> =

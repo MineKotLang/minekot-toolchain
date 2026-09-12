@@ -101,6 +101,10 @@ class TrailingCommaRule(config: Config) : Rule(config, "MineKot codestyle rule."
 
     override fun visitWhenEntry(jetWhenEntry: KtWhenEntry) {
         super.visitWhenEntry(jetWhenEntry)
+        val whenExpression = jetWhenEntry.parent as? KtWhenExpression ?: return
+        if (whenExpression.subjectExpression == null || jetWhenEntry.conditions.size < 2) {
+            return
+        }
         val lastCondition = jetWhenEntry.conditions.lastOrNull() ?: return
         val arrow = jetWhenEntry.arrow ?: return
         jetWhenEntry.reportMissingTrailingCommaBefore(
