@@ -83,10 +83,10 @@ class MineKotToolchainPluginTest {
         val result = runGradle(projectDirectory, "printDynamicRulesDefault")
 
         assertTrue(result.output.contains("rulesEnabled=false"))
-        assertTrue(result.output.contains("rulesVersion=1.0.3"))
+        assertTrue(result.output.contains("rulesVersion=1.0.5"))
         assertTrue(
             result.output.contains(
-                "rulesDigest=f2177cf690eb505882947df1a81a71c52ebfd0bcb54d6158eb0a3c057c2db2fd",
+                "rulesDigest=8fcd59e187879079139e165a732978b3a92202a611c7d811e15a454f3cd33d80",
             ),
         )
         assertTrue(result.output.contains("resolveTask=false"))
@@ -1378,7 +1378,7 @@ class MineKotToolchainPluginTest {
             plugins { kotlin("jvm") }
 
             dependencies {
-                implementation("com.google.devtools.ksp:symbol-processing-api:2.3.10")
+                implementation("com.google.devtools.ksp:symbol-processing-api:2.3.12")
             }
             """.trimIndent() + "\n",
         )
@@ -1622,7 +1622,7 @@ class MineKotToolchainPluginTest {
         projectDirectory.resolve("build.gradle.kts").toFile().writeText(
             """
             plugins {
-                kotlin("multiplatform") version "2.4.10"
+                kotlin("multiplatform") version "2.4.20"
                 id("org.minekot.toolchain") version "+"
             }
             """.trimIndent() + "\n",
@@ -1803,11 +1803,11 @@ class MineKotToolchainPluginTest {
               "minimumCoreVersion":"1.0.0",
               "maximumCoreVersionExclusive":"2.0.0",
               "minimumJavaVersion":21,
-              "kotlinPsiBaseline":"2.4.10",
+              "kotlinPsiBaseline":"2.4.20",
               "testedHosts":[{
                 "hostType":"DETEKT",
-                "hostVersion":"2.0.0-alpha.5",
-                "kotlinVersion":"2.4.10"
+                "hostVersion":"2.0.0-alpha.6",
+                "kotlinVersion":"2.4.20"
               }],
               "catalogProvider":"org.minekot.rules.MineKotRulesCatalog",
               "configurationSchemaVersion":1

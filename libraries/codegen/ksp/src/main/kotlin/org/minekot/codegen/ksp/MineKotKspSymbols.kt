@@ -21,7 +21,7 @@ fun KClass<*>.mineKotKspName(): String =
  * @return Invalid symbols for later processing.
  */
 fun Iterable<KSAnnotated>.mineKotDeferredSymbols(): List<KSAnnotated> =
-    filterNot(KSAnnotated::validate)
+    filterNot { symbol -> symbol.validate(enableNewFeatures = true) }
 
 /**
  * Validates this symbol and returns it as a [Result].
@@ -29,7 +29,7 @@ fun Iterable<KSAnnotated>.mineKotDeferredSymbols(): List<KSAnnotated> =
  * @return Successful symbol or validation failure.
  */
 fun <Symbol : KSAnnotated> Symbol.mineKotValidationResult(): Result<Symbol> =
-    if (validate()) {
+    if (validate(enableNewFeatures = true)) {
         Result.success(this)
     } else {
         Result.failure(IllegalStateException("KSP symbol failed validation."))

@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
  * @return Valid annotated symbols.
  */
 fun Resolver.mineKotAnnotatedSymbols(annotationName: String): Sequence<KSAnnotated> =
-    getSymbolsWithAnnotation(annotationName).filter(KSAnnotated::validate)
+    getSymbolsWithAnnotation(annotationName).filter { symbol -> symbol.validate(enableNewFeatures = true) }
 
 /**
  * Returns valid symbols with an annotation.
@@ -50,7 +50,7 @@ inline fun <reified AnnotationType : Annotation> Resolver.mineKotAnnotatedSymbol
 fun Resolver.mineKotAnnotatedClasses(annotationName: String): Sequence<KSClassDeclaration> =
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSClassDeclaration>()
-        .filter(KSAnnotated::validate)
+        .filter { symbol -> symbol.validate(enableNewFeatures = true) }
         .distinctMineKotDeclarations()
 
 /**
@@ -90,7 +90,7 @@ inline fun <reified AnnotationType : Annotation> Resolver.mineKotAnnotatedClasse
 fun Resolver.mineKotAnnotatedFunctions(annotationName: String): Sequence<KSFunctionDeclaration> =
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSFunctionDeclaration>()
-        .filter(KSAnnotated::validate)
+        .filter { symbol -> symbol.validate(enableNewFeatures = true) }
         .distinctMineKotDeclarations()
 
 /**
@@ -130,7 +130,7 @@ inline fun <reified AnnotationType : Annotation> Resolver.mineKotAnnotatedFuncti
 fun Resolver.mineKotAnnotatedProperties(annotationName: String): Sequence<KSPropertyDeclaration> =
     getSymbolsWithAnnotation(annotationName)
         .filterIsInstance<KSPropertyDeclaration>()
-        .filter(KSAnnotated::validate)
+        .filter { symbol -> symbol.validate(enableNewFeatures = true) }
         .distinctMineKotDeclarations()
 
 /** Removes duplicate source and library views of one declaration while retaining local declarations independently. */

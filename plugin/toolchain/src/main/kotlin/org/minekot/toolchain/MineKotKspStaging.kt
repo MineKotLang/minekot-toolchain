@@ -172,7 +172,6 @@ internal object MineKotKspStaging {
         target.nonJvmLibraries.from(original.map { task -> task.kspConfig.nonJvmLibraries })
         target.platformType.set(original.flatMap { task -> task.kspConfig.platformType })
         target.konanTargetName.set(original.flatMap { task -> task.kspConfig.konanTargetName })
-        target.konanHome.set(original.flatMap { task -> task.kspConfig.konanHome })
         target.profilingMode.set(original.flatMap { task -> task.kspConfig.profilingMode })
     }
 
@@ -194,7 +193,7 @@ internal object MineKotKspStaging {
         }
     }
 
-    private const val supportedVersion: String = "2.3.10"
+    private const val supportedVersion: String = "2.3.12"
     private val pathOptionMarkers: Set<String> = setOf("dir", "output", "path", "schema")
 }
 

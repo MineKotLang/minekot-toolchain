@@ -129,9 +129,9 @@ abstract class ResolveMineKotRulesTask : DefaultTask() {
     }
 
     private companion object {
-        const val DETEKT_VERSION = "2.0.0-alpha.5"
-        const val KOTLIN_VERSION = "2.4.10"
-        const val CORE_VERSION = "1.0.1"
+        const val DETEKT_VERSION = "2.0.0-alpha.6"
+        const val KOTLIN_VERSION = "2.4.20"
+        const val CORE_VERSION = "1.0.2"
         const val SPI_MAJOR = 1
     }
 }

@@ -1119,7 +1119,7 @@ class MineKotRulesTest {
                 }
 
                 plugins {
-                    id("com.gradle.develocity") version "4.3.2"
+                    id("com.gradle.develocity") version "4.5.1"
                 }
                 """,
         ),

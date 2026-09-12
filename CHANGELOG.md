@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.3.6 - 2026-09-12
+
+### Dependency updates
+
+- Update the verified build baseline to Gradle 9.7.1, Kotlin 2.4.20, Detekt 2.0.0-alpha.6, KSP 2.3.12, KotlinPoet 2.4.0, JUnit 6.1.3, CommonMark 0.30.0, and Develocity 4.5.1.
+- Adapt staged KSP configuration to the 2.3.12 model and validate backing fields and context parameters explicitly.
 
 ### Internal changes
 
 - Move concrete inspection roadmap ownership to `minekot-rules` and shared SPI/adapter ownership to `minekot-inspections`; retain only Gradle/Detekt host and repository-wide checks here.
-- Embed signed rules generation `1.0.3` as the tested opt-in default and retain atomic project override locks.
+- Embed signed rules generation `1.0.5` as the tested opt-in default and retain atomic project override locks.
 - Resolve published inspection dependencies from MineKot Maven in the standalone composite-build smoke project.
 
 ## 1.3.5 - 2026-08-11

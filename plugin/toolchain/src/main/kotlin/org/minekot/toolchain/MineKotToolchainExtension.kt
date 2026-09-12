@@ -472,10 +472,10 @@ abstract class RulesLockBlock @Inject constructor(objects: ObjectFactory) {
 
     companion object {
         /** Rules generation verified with this toolchain source revision. */
-        const val DEFAULT_VERSION = "1.0.3"
+        const val DEFAULT_VERSION = "1.0.5"
 
         /** Signed manifest digest for [DEFAULT_VERSION]. */
-        const val DEFAULT_MANIFEST_SHA256 = "f2177cf690eb505882947df1a81a71c52ebfd0bcb54d6158eb0a3c057c2db2fd"
+        const val DEFAULT_MANIFEST_SHA256 = "8fcd59e187879079139e165a732978b3a92202a611c7d811e15a454f3cd33d80"
     }
 }
 
